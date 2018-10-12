@@ -1,6 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from skimage import data
+from skimage.measure import label, regionprops
+import imageio
+from matplotlib import pyplot as plt
+
+
+
 def candidate_generation_window_example1(im, pixel_candidates):
     window_candidates = [[17.0, 12.0, 49.0, 44.0], [60.0,90.0,100.0,130.0]]
 
@@ -8,6 +15,17 @@ def candidate_generation_window_example1(im, pixel_candidates):
  
 def candidate_generation_window_example2(im, pixel_candidates):
     window_candidates = [[21.0, 14.0, 54.0, 47.0], [63.0,92.0,103.0,132.0],[200.0,200.0,250.0,250.0]]
+
+    return window_candidates
+
+def candidate_generation_window_ccl(pixel_candidates):
+
+    label_image = label(pixel_candidates)
+    regions = regionprops(label_image)
+    window_candidates = []
+    for region in regions:
+        minr, minc, maxr, maxc = region.bbox
+        window_candidates.append([minr, minc, maxr, maxc])
 
     return window_candidates
  
@@ -18,7 +36,8 @@ def candidate_generation_window_example2(im, pixel_candidates):
 def switch_method(im, pixel_candidates, method):
     switcher = {
         'example1': candidate_generation_window_example1,
-        'example2': candidate_generation_window_example2
+        'example2': candidate_generation_window_example2,
+        'ccl': candidate_generation_window_ccl
     }
     # Get the function from switcher dictionary
     func = switcher.get(method, lambda: "Invalid method")
@@ -36,7 +55,15 @@ def candidate_generation_window(im, pixel_candidates, method):
 
     
 if __name__ == '__main__':
-    window_candidates1 = candidate_generation_window(im, pixel_candidates, 'example1')
-    window_candidates2 = candidate_generation_window(im, pixel_candidates, 'example2')
+    #window_candidates1 = candidate_generation_window(im, pixel_candidates, 'example1')
+    #window_candidates2 = candidate_generation_window(im, pixel_candidates, 'example2')
+    #im = imageio.imread('data/train/01.003246.jpg')
+    pixel_candidates = imageio.imread('results/rgb_None/00.000949.png')
+    #window_candidates3 = candidate_generation_window(im, pixel_candidates, 'ccl')
+    window_candidates3 = candidate_generation_window_ccl(pixel_candidates)
+    print(window_candidates3)
+    plt.imshow(pixel_candidates*255)
+    plt.show()
+
 
     
