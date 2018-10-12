@@ -215,6 +215,29 @@ def candidate_generation_pixel_rgb(im):
     return pixel_candidates
 
 
+def candidate_generation_pixel_hsv_ranges(rgb):
+    """
+    Convert from RGB to HSV and filter pixels depending on whether they belong
+    to a set of ranges. Ranges are computed empirically.
+    """
+
+    lower_red = np.array([[0, 100, 50], [10, 255, 255]])
+    upper_red = np.array([[170, 100, 50], [179, 255, 255]])
+    blue = np.array([[90, 100, 50], [135, 255, 255]])
+    ranges = [lower_red, upper_red, blue]
+
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+
+    h, w = hsv.shape[:2]
+    mask = np.zeros((h, w), dtype=np.uint8)
+    for r in ranges:
+        lowerb, upperb = r
+        mask |= cv2.inRange(hsv, lowerb, upperb)
+    mask = (mask / 255).astype(np.uint8)
+
+    return mask
+
+
 def switch_color_space(im, color_space):
     switcher = {
         'normrgb': candidate_generation_pixel_normrgb,
@@ -223,8 +246,10 @@ def switch_color_space(im, color_space):
         'ihsl_1': candidate_generation_pixel_ihsl1,
         'ihsl_2': candidate_generation_pixel_ihsl2,
         'hsv_euclidean': candidate_generation_pixel_hsv_euclidean,
-        'rgb': candidate_generation_pixel_rgb
+        'rgb': candidate_generation_pixel_rgb,
+        'hsv_ranges': candidate_generation_pixel_hsv_ranges
     }
+
     # Get the function from switcher dictionary
     func = switcher.get(color_space, lambda: "Invalid color space")
 
@@ -237,12 +262,3 @@ def switch_color_space(im, color_space):
 def candidate_generation_pixel(im, color_space):
     pixel_candidates = switch_color_space(im, color_space)
     return pixel_candidates
-
-
-if __name__ == '__main__':
-    pixel_candidates1 = candidate_generation_pixel(im, 'normrgb')
-    pixel_candidates2 = candidate_generation_pixel(im, 'hsv')
-    pixel_candidates3 = candidate_generation_pixel(im, 'ihsl_1')
-    pixel_candidates4 = candidate_generation_pixel(im, 'ihsl_2')
-    pixel_candidates4 = candidate_generation_pixel(im, 'hsv_euclidean')
-    pixel_candidates5 = candidate_generation_pixel(im, 'rgb')
