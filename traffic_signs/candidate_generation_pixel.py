@@ -261,5 +261,6 @@ def switch_color_space(im, color_space):
 
 
 def candidate_generation_pixel(im, color_space):
-    pixel_candidates = switch_color_space(im, color_space)
+    mask = switch_color_space(im, color_space)
+    pixel_candidates = morphological_filtering(mask)
     return pixel_candidates
