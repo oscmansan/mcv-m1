@@ -3,7 +3,7 @@ import numpy as np
 import imageio
 from skimage import color
 import cv2
-
+import morphology_utils
 
 def candidate_generation_pixel_normrgb(im):
     # convert input image to the normRGB color space
@@ -182,11 +182,6 @@ def candidate_generation_pixel_hsv_euclidean(rgb):
         s2 = ref[:,:,1]
         dist = ((h2-h1)**2 + (s2-s1)**2)**0.5
         mask = dist < thresh
-
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel)
-        mask = cv2.medianBlur(mask, 7)
-
         masks.append(mask)
 
     pixel_candidates = np.zeros(rgb.shape[:2], dtype=np.uint8)
@@ -214,6 +209,13 @@ def candidate_generation_pixel_rgb(im):
 
     return pixel_candidates
 
+def morphological_filtering(mask):
+    """
+        Apply morphological operations to prepare pixel candidates to be selected as a traffic signal or not.
+    """
+    mask_filled = morphology_utils.fill_holes(mask)
+    mask_filtered = morphology_utils.filter_noise(mask_filled)
+    return mask_filtered
 
 def candidate_generation_pixel_hsv_ranges(rgb):
     """
@@ -242,7 +244,6 @@ def switch_color_space(im, color_space):
     switcher = {
         'normrgb': candidate_generation_pixel_normrgb,
         'hsv': candidate_generation_pixel_hsv,
-        #'lab'    : candidate_generation_pixel_lab,
         'ihsl_1': candidate_generation_pixel_ihsl1,
         'ihsl_2': candidate_generation_pixel_ihsl2,
         'hsv_euclidean': candidate_generation_pixel_hsv_euclidean,
