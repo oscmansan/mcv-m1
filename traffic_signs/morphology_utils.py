@@ -40,14 +40,13 @@ def granulometry(mask, steps, dict_kernels):
 def main():
     max_size = 30
     dict_kernels = collections.defaultdict()
-    for mask_file in sorted(glob.glob('results/ihsl_1/00.002254.png')):
+    for mask_file in sorted(glob.glob('output\hsv_euclidean_None/*.png')):
         print(mask_file)
         mask = imageio.imread(mask_file)
-        plt.imshow(filter_noise(fill_holes(mask))*255)
         dict_kernels = granulometry(mask, max_size, dict_kernels)
-    print(list(dict_kernels.values()))
-    plt.hist(list(dict_kernels.values()))
-    #print(plt.keys())
+
+    plt.hist(dict_kernels.values())
+    print(plt.keys())
     plt.show()
 
 if __name__ == '__main__':

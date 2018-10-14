@@ -1,6 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from skimage import data
+from skimage.measure import label, regionprops
+import imageio
+from matplotlib import pyplot as plt
+import matplotlib.patches as mpatches
+
+
 def candidate_generation_window_example1(im, pixel_candidates):
     window_candidates = [[17.0, 12.0, 49.0, 44.0], [60.0,90.0,100.0,130.0]]
 
@@ -11,7 +18,17 @@ def candidate_generation_window_example2(im, pixel_candidates):
 
     return window_candidates
 
- 
+def candidate_generation_window_ccl(im, pixel_candidates):
+
+    label_image = label(pixel_candidates)
+    regions = regionprops(label_image)
+    window_candidates = []
+    for region in regions:
+        minr, minc, maxr, maxc = region.bbox
+        window_candidates.append([minr, minc, maxr, maxc])
+
+    return window_candidates
+
 # Create your own candidate_generation_window_xxx functions for other methods
 # Add them to the switcher dictionary in the switch_method() function
 # These functions should take an image, a pixel_candidates mask (and perhaps other parameters) as input and output the window_candidates list.
@@ -19,7 +36,8 @@ def candidate_generation_window_example2(im, pixel_candidates):
 def switch_method(im, pixel_candidates, method):
     switcher = {
         'example1': candidate_generation_window_example1,
-        'example2': candidate_generation_window_example2
+        'example2': candidate_generation_window_example2,
+        'ccl': candidate_generation_window_ccl
     }
     # Get the function from switcher dictionary
     func = switcher.get(method, lambda: "Invalid method")
@@ -28,6 +46,20 @@ def switch_method(im, pixel_candidates, method):
     window_candidates = func(im, pixel_candidates)
 
     return window_candidates
+
+
+def visualize_boxes(pixel_candidates, window_candidates):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.imshow(pixel_candidates * 255)
+    for candidate in window_candidates:
+        minr, minc, maxr, maxc = candidate
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                  fill=False, edgecolor='red', linewidth=2)
+        ax.add_patch(rect)
+
+    plt.show()
+
+
 
 def candidate_generation_window(im, pixel_candidates, method):
 
@@ -39,5 +71,8 @@ def candidate_generation_window(im, pixel_candidates, method):
 if __name__ == '__main__':
     window_candidates1 = candidate_generation_window(im, pixel_candidates, 'example1')
     window_candidates2 = candidate_generation_window(im, pixel_candidates, 'example2')
+    window_candidates3 = candidate_generation_window(im, pixel_candidates, 'ccl')
+    #visualize_boxes(pixel_candidates, window_candidates3)
+
 
     

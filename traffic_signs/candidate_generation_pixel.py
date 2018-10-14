@@ -4,6 +4,9 @@ import imageio
 from skimage import color
 import cv2
 
+from color_utils import vrgb2ihsl as rgb2ihsl
+from morphology_utils import fill_holes, filter_noise
+
 
 def candidate_generation_pixel_normrgb(im):
     # convert input image to the normRGB color space
@@ -38,49 +41,19 @@ def candidate_generation_pixel_hsv(im):
 # These functions should take an image as input and output the pixel_candidates mask image
 
 
-def rgb2ihsl(im):
-    """
-    Convert from RGB to IHSL color space. IHSL stands for Improved HSL color space (H. Fleyeh).
-    """
-
-    R = im[:, :, 0]
-    G = im[:, :, 1]
-    B = im[:, :, 2]
-    R, G, B = R / 255.0, G / 255.0, B / 255.0
-
-    numerador = R - G / 2 - B / 2
-    denominador = np.sqrt(np.square(R) + np.square(G) + np.square(B) - R * G - R * B - G * B)
-    theta = np.arccos(numerador / denominador)
-
-    H = np.zeros([len(G), len(G[0])])
-    S = np.zeros([len(G), len(G[0])])
-    #print(len(G), len(G[0]))
-    for i in range(len(G)):
-        for j in range(len(G[0])):
-            if G[i, j] >= G[i, j]:
-                H[i, j] = theta[i, j]
-            else:
-                H[i, j] = 360 - theta[i, j]
-
-            S[i, j] = max(R[i, j], G[i, j], B[i, j]) - min(R[i, j], G[i, j], B[i, j])
-    L = 0.212 * R + 0.715 * G + 0.072 * B
-
-    return H, S, L
-
-
 def candidate_generation_pixel_ihsl1(im):
     """
-    Convert from RGB to IHLS and filter pixels by Euclidean distance to reference
-    colors. Thresholds are dinamically computed using the global mean of the luminance.
+    Convert from RGB to IHLS and filter pixels by Euclidean distance to reference colors.
+    Thresholds are dinamically computed using the global mean of the luminance.
 
     The method is explained in 'Color Detection And Segmentation For Road And Traffic Signs' (H. Fleyeh).
     """
 
     # convert input image to IHSL color space
-    H, S, L = rgb2ihsl(im)
+    hsl = rgb2ihsl(im)
+    H, S, L = (hsl[:, :, 0], hsl[:, :, 1], hsl[:, :, 2])
 
     # set color references as White, Red and Blue:
-
     SR = 0.815
     HR = 2.843
 
@@ -124,7 +97,8 @@ def candidate_generation_pixel_ihsl2(im):
     """
 
     #convert input image to IHLS color space
-    H, S, L = rgb2ihsl(im)
+    hsl = rgb2ihsl(im)
+    H, S, L = (hsl[:, :, 0], hsl[:, :, 1], hsl[:, :, 2])
     size = im.shape #(n, m, channels)
 
     Hout = np.zeros((size[0], size[1]))
@@ -182,11 +156,6 @@ def candidate_generation_pixel_hsv_euclidean(rgb):
         s2 = ref[:,:,1]
         dist = ((h2-h1)**2 + (s2-s1)**2)**0.5
         mask = dist < thresh
-
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel)
-        mask = cv2.medianBlur(mask, 7)
-
         masks.append(mask)
 
     pixel_candidates = np.zeros(rgb.shape[:2], dtype=np.uint8)
@@ -214,6 +183,13 @@ def candidate_generation_pixel_rgb(im):
 
     return pixel_candidates
 
+def morphological_filtering(mask):
+    """
+        Apply morphological operations to prepare pixel candidates to be selected as a traffic signal or not.
+    """
+    mask_filled = morphology_utils.fill_holes(mask)
+    mask_filtered = morphology_utils.filter_noise(mask_filled)
+    return mask_filtered
 
 def candidate_generation_pixel_hsv_ranges(rgb):
     """
@@ -238,11 +214,44 @@ def candidate_generation_pixel_hsv_ranges(rgb):
     return mask
 
 
+def candidate_generation_pixel_hsv_ranges(rgb):
+    """
+    Convert from RGB to HSV and filter pixels depending on whether they belong
+    to a set of ranges. Ranges are computed empirically.
+    """
+
+    lower_red = np.array([[0, 100, 50], [10, 255, 255]])
+    upper_red = np.array([[170, 100, 50], [179, 255, 255]])
+    blue = np.array([[90, 100, 50], [135, 255, 255]])
+    ranges = [lower_red, upper_red, blue]
+
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+
+    h, w = hsv.shape[:2]
+    mask = np.zeros((h, w), dtype=np.uint8)
+    for r in ranges:
+        lowerb, upperb = r
+        mask |= cv2.inRange(hsv, lowerb, upperb)
+    mask = (mask / 255).astype(np.uint8)
+
+    return mask
+
+
+def morphological_filtering(mask):
+    """
+    Apply morphological operations to prepare pixel candidates to be selected as
+    a traffic sign or not.
+    """
+
+    mask_filled = fill_holes(mask)
+    mask_filtered = filter_noise(mask_filled)
+    return mask_filtered
+
+
 def switch_color_space(im, color_space):
     switcher = {
         'normrgb': candidate_generation_pixel_normrgb,
         'hsv': candidate_generation_pixel_hsv,
-        #'lab'    : candidate_generation_pixel_lab,
         'ihsl_1': candidate_generation_pixel_ihsl1,
         'ihsl_2': candidate_generation_pixel_ihsl2,
         'hsv_euclidean': candidate_generation_pixel_hsv_euclidean,
@@ -260,5 +269,6 @@ def switch_color_space(im, color_space):
 
 
 def candidate_generation_pixel(im, color_space):
-    pixel_candidates = switch_color_space(im, color_space)
+    mask = switch_color_space(im, color_space)
+    pixel_candidates = morphological_filtering(mask)
     return pixel_candidates

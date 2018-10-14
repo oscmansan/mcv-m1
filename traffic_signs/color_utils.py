@@ -13,6 +13,44 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 
 
+def rgb2ihsl(r, g, b):
+    """
+    Convert from RGB to IHSL (Improved HSL) color space space (Hanbury and Serra).
+    Reference: http://cmm.ensmp.fr/~serra/notes_internes_pdf/NI-230.pdf
+    """
+
+    tmp1 = r - g/2 - b/2
+    tmp2 = (r**2 + g**2 + b**2 - r*g - r*b - g*b)**0.5
+    theta = np.degrees(np.arccos(tmp1 / tmp2)) if tmp2>0 else 0
+
+    h = 360-theta if b>g else theta
+    s = max(r, g, b) - min(r, g, b)
+    l = 0.2126*r + 0.7152*g + 0.0722*b
+
+    return (h, s, l)
+
+
+def vrgb2ihsl(im):
+    """
+    Vectorized version of the RGB to IHSL conversion. Here the input is expected
+    to be a (H x W x 3) ndarray representing an RGB image.
+    """
+
+    r = im[:, :, 0]
+    g = im[:, :, 1]
+    b = im[:, :, 2]
+
+    tmp1 = r - g/2 - b/2
+    tmp2 = (r**2 + g**2 + b**2 - r*g - r*b - g*b)**0.5
+    theta = np.where(tmp2>0, np.degrees(np.arccos(tmp1 / tmp2)), 0)
+
+    h = np.where(b>g, 360-theta, theta)
+    s = np.max(im, axis=2) - np.min(im, axis=2)
+    l = 0.2126*r + 0.7152*g + 0.0722*b
+
+    return np.stack((h, s, l), axis=2)
+
+
 def dominant_colors(img, mask, bbox, k=7, n=2):
     tly, tlx, bry, brx = bbox
 
@@ -41,27 +79,6 @@ def pixel_colors(img, mask, bbox):
 
     return pixels
 
-def rgb2ihsl(R,G,B):
-    """
-    Convert from RGB to IHSL color space. IHSL stands for Improved HSL color space (H. Fleyeh).
-    """
-
-    #R = im[0]
-    #G = im[ 1]
-    #B = im[2]
-
-    numerador = R - G / 2 - B / 2
-    denominador = np.sqrt(np.square(R) + np.square(G) + np.square(B) - R * G - R * B - G * B)
-    theta = np.arccos(numerador / denominador)
-
-    if G >= B:
-        H= np.nan_to_num(theta)
-    else:
-        H = 360 - theta
-    S = max(R, G, B) - min(R, G, B)
-    L = 0.212 * R + 0.715 * G + 0.072 * B
-
-    return H, S, L
 
 def worker(img_file):
     name = os.path.splitext(os.path.split(img_file)[1])[0]
@@ -92,6 +109,7 @@ def reference_colors(images):
     labels = clt.fit_predict(hsv_colors)
 
     return clt.cluster_centers_
+
 
 def reference_colors_ihsl(images):
     with mp.Pool(8) as p:
@@ -177,9 +195,6 @@ def main():
 
     ref_colors = reference_colors_ihsl(images)
     [print('({:.4f}, {:.4f}, {:.4f})'.format(*c)) for c in ref_colors]
-
-    #rgb_histograms(images)
-    #hue_histograms(images)
 
 
 if __name__ == '__main__':
