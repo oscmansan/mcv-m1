@@ -5,7 +5,7 @@ from skimage import data
 from skimage.measure import label, regionprops
 import imageio
 from matplotlib import pyplot as plt
-
+import matplotlib.patches as mpatches
 
 
 def candidate_generation_window_example1(im, pixel_candidates):
@@ -18,7 +18,7 @@ def candidate_generation_window_example2(im, pixel_candidates):
 
     return window_candidates
 
-def candidate_generation_window_ccl(pixel_candidates):
+def candidate_generation_window_ccl(im, pixel_candidates):
 
     label_image = label(pixel_candidates)
     regions = regionprops(label_image)
@@ -47,6 +47,20 @@ def switch_method(im, pixel_candidates, method):
 
     return window_candidates
 
+
+def visualize_boxes(pixel_candidates, window_candidates):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.imshow(pixel_candidates * 255)
+    for candidate in window_candidates:
+        minr, minc, maxr, maxc = candidate
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                  fill=False, edgecolor='red', linewidth=2)
+        ax.add_patch(rect)
+
+    plt.show()
+
+
+
 def candidate_generation_window(im, pixel_candidates, method):
 
     window_candidates = switch_method(im, pixel_candidates, method)
@@ -55,15 +69,10 @@ def candidate_generation_window(im, pixel_candidates, method):
 
     
 if __name__ == '__main__':
-    #window_candidates1 = candidate_generation_window(im, pixel_candidates, 'example1')
-    #window_candidates2 = candidate_generation_window(im, pixel_candidates, 'example2')
-    #im = imageio.imread('data/train/01.003246.jpg')
-    pixel_candidates = imageio.imread('results/rgb_None/00.000949.png')
-    #window_candidates3 = candidate_generation_window(im, pixel_candidates, 'ccl')
-    window_candidates3 = candidate_generation_window_ccl(pixel_candidates)
-    print(window_candidates3)
-    plt.imshow(pixel_candidates*255)
-    plt.show()
+    window_candidates1 = candidate_generation_window(im, pixel_candidates, 'example1')
+    window_candidates2 = candidate_generation_window(im, pixel_candidates, 'example2')
+    window_candidates3 = candidate_generation_window(im, pixel_candidates, 'ccl')
+    #visualize_boxes(pixel_candidates, window_candidates3)
 
 
     
