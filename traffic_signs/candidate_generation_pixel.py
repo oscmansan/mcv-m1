@@ -187,8 +187,8 @@ def morphological_filtering(mask):
     """
         Apply morphological operations to prepare pixel candidates to be selected as a traffic signal or not.
     """
-    mask_filled = morphology_utils.fill_holes(mask)
-    mask_filtered = morphology_utils.filter_noise(mask_filled)
+    mask_filled = fill_holes(mask)
+    mask_filtered = filter_noise(mask_filled)
     return mask_filtered
 
 def candidate_generation_pixel_hsv_ranges(rgb):

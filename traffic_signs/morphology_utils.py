@@ -8,15 +8,15 @@ import cv2
 from matplotlib import pyplot as plt
 
 def fill_holes(mask):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (17, 17))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
-    mask = cv2.medianBlur(mask, 7)
+    #mask = cv2.medianBlur(mask, 7)
     return mask
 
 def filter_noise(mask):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel)
-    mask = cv2.medianBlur(mask, 7)
+    #mask = cv2.medianBlur(mask, 7)
     return mask
 
 def granulometry(mask, steps, dict_kernels):
