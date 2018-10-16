@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 
 from evaluation.bbox_iou import bbox_iou
-
+from window_evaluation import ccl_window_evaluation
 
 def candidate_generation_window_example1(im, pixel_candidates):
     window_candidates = [[17.0, 12.0, 49.0, 44.0], [60.0,90.0,100.0,130.0]]
@@ -38,8 +38,8 @@ def candidate_generation_window_ccl(im, pixel_candidates):
     window_candidates = []
     for region in regions:
         minr, minc, maxr, maxc = region.bbox
-        window_candidates.append([minr, minc, maxr, maxc])
-
+        if ccl_window_evaluation(pixel_candidates, region.bbox):
+            window_candidates.append([minr, minc, maxr, maxc])
     return window_candidates
 
 
