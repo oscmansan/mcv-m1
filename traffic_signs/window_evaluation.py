@@ -4,6 +4,7 @@ import data_analysis as da
 import numpy as np
 import imageio
 import cv2
+from scipy.signal import correlate
 from skimage import transform
 
 SIZE_MAX = 30000
@@ -33,14 +34,23 @@ def integral_image_window_evaluation(window_size, bbox):
         return True
     return False
 
+def correlation_coefficient(patch1, patch2):
+    product = np.mean((patch1 - patch1.mean()) * (patch2 - patch2.mean()))
+    stds = patch1.std() * patch2.std()
+    if stds == 0:
+        return 0
+    else:
+        product /= stds
+        return product
+
 
 def template_matching_evaluation(mask, template, bbox):
     window = mask[bbox[0]:bbox[2], bbox[1]:bbox[3]]
-    template = transform.resize(template, (bbox[2]-bbox[0], bbox[3]-bbox[1]), preserve_range=True)
-    template = np.round(template).astype(np.uint8)
-    threshold = 0.8
-    matched = cv2.matchTemplate(window, template, cv2.TM_CCORR_NORMED)  # returns float32
-    if matched.any() > threshold:
+    threshold = 0.6
+    #matched = cv2.matchTemplate(window, template, cv2.TM_CCORR_NORMED)  # returns float32
+    matched = correlation_coefficient(window, template)
+    #print(matched)
+    if abs(matched) > threshold:
         return True
     return False
 

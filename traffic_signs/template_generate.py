@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
 
     #Visualize results and save templates in folder
-    fd = os.path.join('shape_templates')
+    fd = os.path.join('shape_templates_complete')
     if not os.path.exists(fd):
         os.makedirs(fd)
 
@@ -150,7 +150,7 @@ if __name__ == '__main__':
         plt.show()
 
         template = template_gray[key]*template_mask[key]
-        plt.imshow(template)
+        plt.imshow(template_gray[key])
         plt.show()
 
         out_mask_name = os.path.join(fd, key + '.png')

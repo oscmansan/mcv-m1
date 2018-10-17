@@ -4,12 +4,14 @@ import multiprocessing as mp
 import numpy as np
 import imageio
 from skimage.measure import label, regionprops
+from skimage import transform
 
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 
 from evaluation.bbox_iou import bbox_iou
-from window_evaluation import ccl_window_evaluation
+from window_evaluation import ccl_window_evaluation, template_matching_evaluation
+
 
 def candidate_generation_window_example1(im, pixel_candidates):
     window_candidates = [[17.0, 12.0, 49.0, 44.0], [60.0,90.0,100.0,130.0]]
@@ -56,6 +58,37 @@ def nms(bboxes, threshold=.5):
         if keep:
             indices.append(idx)
     return indices
+
+
+def _worker_template(x):
+    im, pixel_candidates, step, box_h, box_w, template = x
+    h, w = im.shape[:2]
+    template = transform.resize(template, (box_h, box_w), preserve_range=True)
+    template = np.round(template).astype(np.uint8)
+
+    window_candidates = []
+    for i in range(0, h-box_h, step):
+        print(i)
+        for j in range(0, w-box_w, step):
+            bbox = [i, j, i+box_h, j+box_w]
+            if template_matching_evaluation(im, template, bbox):
+                window_candidates.append(bbox)
+
+    return window_candidates
+
+
+def template_matching(im, pixel_candidates, template, step=5, nms_threshold=.4):
+    #scales = [(h, w) for h in range(50, 250, 50) for w in range(50, 250, 50)]
+    scales = [(150, 150)]
+
+    with mp.Pool(processes=4) as p:
+        window_candidates = p.map(_worker_template, [(im, pixel_candidates, step, box_h, box_w, template) for box_h, box_w in scales])
+    window_candidates = [bbox for sublist in window_candidates for bbox in sublist]
+
+    indices = nms(window_candidates, threshold=nms_threshold)
+    window_candidates = [window_candidates[idx] for idx in indices]
+
+    return window_candidates
 
 
 def _worker(x):
@@ -143,14 +176,16 @@ if __name__ == '__main__':
     #visualize_boxes(pixel_candidates, window_candidates)
 
     import glob, os, time
-    imfile = np.random.choice(glob.glob('data/train/*.jpg'))
+    imfile = np.random.choice(glob.glob('data/train/01.000936.jpg'))
     name = os.path.splitext(os.path.split(imfile)[1])[0]
-    im = imageio.imread('data/train/{}.jpg'.format(name))
+    im = imageio.imread('data/train/{}.jpg'.format(name), as_gray = True)
+    im = np.round(im).astype(np.uint8)
     mask = imageio.imread('data/train/mask/mask.{}.png'.format(name))
+    template = imageio.imread('shape_templates/circle.png')
 
     start = time.time()
-    window_candidates = sliding_window_par(im, mask)
+    window_candidates = template_matching(im, mask, template)
     end = time.time()
     print(end-start)
 
-    visualize_boxes(mask, window_candidates)
+    visualize_boxes(im, window_candidates)
