@@ -51,7 +51,7 @@ def candidate_generation_pixel_ihsl1(im):
 
     # convert input image to IHSL color space
     hsl = rgb2ihsl(im)
-    H, S, L = (hsl[:, :, 0], hsl[:, :, 1], hsl[:, :, 2])
+    H, S, L = (hsl[:, :, 0]/359, hsl[:, :, 1]/255, hsl[:, :, 2]/255)
 
     # set color references as White, Red and Blue:
     SR = 0.815
