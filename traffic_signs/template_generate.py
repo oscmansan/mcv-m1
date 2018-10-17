@@ -83,10 +83,6 @@ if __name__ == '__main__':
             mean_form_factor[shape] += form_factor(bbox)
             mean_filling_ratio[shape] += filling_ratio(mask, bbox)
             mean_size[shape] += size(mask, bbox)
-            #plt.imshow(traffic_signal(img, mask, bbox))
-            #plt.show()
-            #plt.imshow(color.rgb2gray(traffic_signal(img, mask, bbox)))
-            #plt.show()
 
     for label in images_label.keys():
         print(label)
@@ -96,8 +92,7 @@ if __name__ == '__main__':
                 i += 1
                 [r, c] = image.shape
                 mean_gray[label] += sum(sum(image))/(r*c)
-                #plt.imshow(image/mean_gray[label])
-                #plt.show()
+
 
             mean_gray[label] = mean_gray[label]/i
             mean_form_factor[label] = mean_form_factor[label]/i
@@ -129,26 +124,8 @@ if __name__ == '__main__':
             bbox = np.round(list(map(int, map(float, gt[:4]))))
             label = gt[4]
 
-
-            #img = Image.open(img_file)
-            #mask = Image.open(mask_file)
-            #resized_img = img.resize((width[label], height[label]))
-            #resized_mask = mask.resize((width[label], height[label]))
             img_part = traffic_signal(img, bbox)
             mask_part = traffic_signal(mask, bbox)
-
-
-            #resized_img = Image.fromarray(img_part)
-            #resized_img = resized_img.resize((int(width[label]), int(height[label])))
-            #resized_img = resized_img.resize((80, 80))
-
-
-
-            #images_label[label].append(color.rgb2gray(resized_img))
-            #plt.imshow(traffic_signal(img, mask, bbox))
-            #plt.show()
-            #plt.imshow(color.rgb2gray(traffic_signal(img, mask, bbox)))
-            #plt.show()
 
             if label == 'A':
                 shape = 'triangle'
@@ -171,6 +148,10 @@ if __name__ == '__main__':
 
             quantity_images[shape] += 1
 
+    fd = os.path.join('shape_templates')
+    if not os.path.exists(fd):
+        os.makedirs(fd)
+
     for key in template_gray.keys():
         template_gray[key] = template_gray[key]/quantity_images[key]
         template_mask[key] = template_mask[key]/quantity_images[key]
@@ -180,3 +161,10 @@ if __name__ == '__main__':
 
         plt.imshow(template_mask[key])
         plt.show()
+
+        template = template_gray[key]*template_mask[key]
+        plt.imshow(template)
+        plt.show()
+
+        out_mask_name = os.path.join(fd, key + '.png')
+        imageio.imwrite(out_mask_name, np.uint8(np.round(template)))
