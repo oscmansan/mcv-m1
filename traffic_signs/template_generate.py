@@ -48,16 +48,13 @@ if __name__ == '__main__':
     template_gray = dict()
     template_mask = dict()
     quantity_images = defaultdict(int)
-
-
-    images_label = defaultdict(list)
     mean_gray = defaultdict(int)
     mean_form_factor = defaultdict(int)
-    mean_filling_ratio = defaultdict(int)
     mean_size = defaultdict(int)
     height = defaultdict(int)
     width = defaultdict(int)
-    labels = ['A', 'B', 'C', 'D', 'E', 'F']
+
+    #Analysis of data per shape (find average sizes of the masks)
     for img_file in sorted(glob.glob('train_val/train/*.jpg')):
         name = os.path.splitext(os.path.split(img_file)[1])[0]
         mask_file = 'train_val/train/mask/mask.{}.png'.format(name)
@@ -79,40 +76,30 @@ if __name__ == '__main__':
                 shape = 'circle'
 
 
-            images_label[shape].append(color.rgb2gray(traffic_signal(img, bbox)))
             mean_form_factor[shape] += form_factor(bbox)
-            mean_filling_ratio[shape] += filling_ratio(mask, bbox)
             mean_size[shape] += size(mask, bbox)
+            quantity_images[shape] += 1
 
-    for label in images_label.keys():
+    for label in quantity_images.keys():
         print(label)
-        if len(images_label[label]) > 0:
-            i = 0
-            for image in images_label[label]:
-                i += 1
-                [r, c] = image.shape
-                mean_gray[label] += sum(sum(image))/(r*c)
 
+        mean_form_factor[label] = mean_form_factor[label]/quantity_images[label]
+        mean_size[label] = mean_size[label]/quantity_images[label]
+        width[label] = round(np.sqrt(mean_size[label]*mean_form_factor[label]))
+        height[label] = round(np.sqrt(mean_size[label]/mean_form_factor[label]))
 
-            mean_gray[label] = mean_gray[label]/i
-            mean_form_factor[label] = mean_form_factor[label]/i
-            mean_filling_ratio[label] = mean_filling_ratio[label]/i
-            mean_size[label] = mean_size[label]/i
-            width[label] = round(np.sqrt(mean_size[label]*mean_form_factor[label]))
-            height[label] = round(np.sqrt(mean_size[label]/mean_form_factor[label]))
-            print('MEAN')
-            print(mean_gray)
-            print('FORM')
-            print(mean_form_factor)
-            print('FILL')
-            print(mean_filling_ratio)
-            print('SIZE')
-            print(mean_size)
-            print('Height')
-            print(height)
-            print('Width')
-            print(width)
+        print('MEAN')
+        print(mean_gray)
+        print('FORM')
+        print(mean_form_factor)
+        print('SIZE')
+        print(mean_size)
+        print('Height')
+        print(height)
+        print('Width')
+        print(width)
 
+    #Computing the mean grayscale value of all signals per shape and the average of all masks per each shape
     for img_file in sorted(glob.glob('train_val/train/*.jpg')):
         name = os.path.splitext(os.path.split(img_file)[1])[0]
         mask_file = 'train_val/train/mask/mask.{}.png'.format(name)
@@ -146,8 +133,8 @@ if __name__ == '__main__':
                 template_gray[shape] = resized_img
                 template_mask[shape] = resized_mask
 
-            quantity_images[shape] += 1
 
+    #Visualize results and save templates in folder
     fd = os.path.join('shape_templates')
     if not os.path.exists(fd):
         os.makedirs(fd)
