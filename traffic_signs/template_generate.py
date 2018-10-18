@@ -10,24 +10,13 @@ import numpy as np
 import imageio
 from collections import defaultdict
 from matplotlib import pyplot as plt
+from data_analysis import form_factor, size
 
 
 def traffic_signal(img, bbox):
     tly, tlx, bry, brx = bbox
     img_result = img[tly:bry, tlx:brx]
     return img_result
-
-
-def size(mask, bbox):
-    tly, tlx, bry, brx = bbox
-    return np.count_nonzero(mask[tly:bry,tlx:brx])
-
-
-def form_factor(bbox):
-    tly, tlx, bry, brx = bbox
-    width = brx - tlx
-    height = bry - tly
-    return width / height
 
 
 def data_shape_analysis(images_dir):

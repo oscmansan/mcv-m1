@@ -38,12 +38,23 @@ def compute_num_overlap(gts, img):
                 bboxB = list(map(float, gts[j][:4]))
                 print(img, bbox_iou(bboxA, bboxB))
 
+def height(bbox):
+    tly, tlx, bry, brx = bbox
+    return bry-tly
+
+def width(bbox):
+    tly, tlx, bry, brx = bbox
+    return brx-tlx
+
+
 
 def main():
     class_frequency = defaultdict(int)
     size_per_class = defaultdict(list)
     form_factor_per_class = defaultdict(list)
     filling_ratio_per_class = defaultdict(list)
+    height_bbox = []
+    width_bbox = []
     for img_file in sorted(glob.glob('data/train/*.jpg')):
         name = os.path.splitext(os.path.split(img_file)[1])[0]
         mask_file = 'data/train/mask/mask.{}.png'.format(name)
@@ -59,12 +70,16 @@ def main():
             size_per_class[label].append(size(mask, bbox))
             form_factor_per_class[label].append(form_factor(bbox))
             filling_ratio_per_class[label].append(filling_ratio(mask, bbox))
+            height_bbox.append(height(bbox))
+            width_bbox.append(width(bbox))
 
     for clase in form_factor_per_class.keys():
         print("CLASE ", clase)
         print("FORM FACTOR", "max", max(form_factor_per_class[clase]), "min", min(form_factor_per_class[clase]))
         print("FILLING RATIO", "max", max(filling_ratio_per_class[clase]), "min", min(filling_ratio_per_class[clase]))
         print("SIZE", "max", max(size_per_class[clase]), "min", min(size_per_class[clase]))
+    print("WIDTH", 'max', max(width_bbox), 'min', min(width_bbox), 'mean', np.mean(width_bbox), 'std', np.std(width_bbox))
+    print("HEIGHT", 'max', max(height_bbox), 'min', min(height_bbox), 'mean', np.mean(height_bbox), 'std', np.std(height_bbox))
 
 
 if __name__ == '__main__':

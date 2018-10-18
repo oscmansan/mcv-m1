@@ -63,7 +63,6 @@ def _worker_template(x):
 
     window_candidates = []
     for i in range(0, h-box_h, step):
-        print(i)
         for j in range(0, w-box_w, step):
             bbox = [i, j, i+box_h, j+box_w]
             if template_matching_evaluation(im, template, bbox):
@@ -73,12 +72,12 @@ def _worker_template(x):
 
 
 def template_matching(im, pixel_candidates, template, step=5, nms_threshold=.4):
-    scales = [(h, w) for h in range(30, 160, 20) for w in range(30, 160, 20)]
+    scales = [(h, w) for h in range(30, 180, 20) for w in range(30, 180, 20)]
 
     im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
     im = np.round(im).astype(np.uint8)
 
-    with mp.Pool(processes=4) as p:
+    with mp.Pool(processes=12) as p:
         window_candidates = p.map(_worker_template, [(im, pixel_candidates, step, box_h, box_w, template) for box_h, box_w in scales])
     window_candidates = [bbox for sublist in window_candidates for bbox in sublist]
 
@@ -173,7 +172,7 @@ if __name__ == '__main__':
     #visualize_boxes(pixel_candidates, window_candidates)
 
     import glob, os, time
-    imfile = np.random.choice(glob.glob('data/train/01.000936.jpg'))
+    imfile = np.random.choice(glob.glob('data/train/*.jpg'))
     name = os.path.splitext(os.path.split(imfile)[1])[0]
     im = imageio.imread('data/train/{}.jpg'.format(name))
     mask = imageio.imread('data/train/mask/mask.{}.png'.format(name))
