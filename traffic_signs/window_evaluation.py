@@ -1,28 +1,38 @@
 #!/usr/bin/env python3
-import os, glob
-import data_analysis as da
 import numpy as np
 import imageio
-import cv2
-from scipy.signal import correlate
-from skimage import transform
 
-SIZE_MAX = 30000
-SIZE_MIN = 460
+import data_analysis as da
+
+
+OBJECT_SIZE_MAX = 30000
+OBJECT_SIZE_MIN = 460
 FILLING_RATIOS = [0.49, 0.74, 1.0]
 
-
-def ccl_window_evaluation(mask, bbox):
-    window_size = da.size(mask, bbox)
-    window_filling_ratio = da.filling_ratio(mask, bbox)
-    threshold = 0.1
-    dist = min(abs(np.array(FILLING_RATIOS) - window_filling_ratio))
-    if dist < threshold and SIZE_MIN < window_size < SIZE_MAX:
-        return True
-    return False
+# load templates
+CIRCLE_TEMPLATE = imageio.imread('data/templates/circle.png')
+SQUARE_TEMPLATE = imageio.imread('data/templates/square.png')
+TRIANGLE_TEMPLATE = imageio.imread('data/templates/triangle.png')
+TRIANGLE_INV_TEMPLATE = imageio.imread('data/templates/triangle_inv.png')
+TEMPLATES = [CIRCLE_TEMPLATE, SQUARE_TEMPLATE, TRIANGLE_TEMPLATE, TRIANGLE_INV_TEMPLATE]
 
 
-def integral_image_window_evaluation(window_size, bbox):
+def window_evaluation_features(pixel_candidates, bbox, fr_thresh=.1):
+    # discard by size
+    object_size = da.size(pixel_candidates, bbox)
+    if (object_size < OBJECT_SIZE_MIN) or (object_size > OBJECT_SIZE_MAX):
+        return False
+
+    # discard by filling ratio
+    fr = da.filling_ratio(pixel_candidates, bbox)
+    dist = min(abs(np.array(FILLING_RATIOS) - fr))
+    if dist > fr_thresh:
+        return False
+
+    return True
+
+
+def window_evaluation_integral_image(window_size, bbox):
     tly, tlx, bry, brx = bbox
     width = brx - tlx
     height = bry - tly
@@ -30,47 +40,54 @@ def integral_image_window_evaluation(window_size, bbox):
     window_filling_ratio = window_size / bbox_area
     threshold = 0.1
     dist = min(abs(np.array(FILLING_RATIOS) - window_filling_ratio))
-    if dist < threshold and SIZE_MIN < window_size < SIZE_MAX:
+    if dist < threshold and OBJECT_SIZE_MIN < window_size < OBJECT_SIZE_MAX:
         return True
     return False
+
 
 def correlation_coefficient(patch1, patch2):
-    product = np.mean((patch1 - patch1.mean()) * (patch2 - patch2.mean()))
+    corr = np.mean((patch1 - patch1.mean()) * (patch2 - patch2.mean()))
     stds = patch1.std() * patch2.std()
-    if stds == 0:
-        return 0
-    else:
-        product /= stds
-        return product
+    norm_corr = corr / stds if stds != 0 else 0
+    return norm_corr
 
 
-def template_matching_evaluation(mask, template, bbox):
-    window = mask[bbox[0]:bbox[2], bbox[1]:bbox[3]]
-    threshold = 0.6
-    #matched = cv2.matchTemplate(window, template, cv2.TM_CCORR_NORMED)  # returns float32
-    matched = correlation_coefficient(window, template)
-    if abs(matched) > threshold:
+def window_evaluation_template(im, bbox, template, corr_thresh=.6):
+    tly, tlx, bry, brx = bbox
+    window = im[tly:bry, tlx:brx]
+    corr = correlation_coefficient(window, template)
+    if abs(corr) > corr_thresh:
         return True
     return False
+
+
+def window_evaluation_rand(pixel_candidates, bbox):
+    return bool(np.random.binomial(1, 0.0001))  # returns True with probability 0.0001
 
 
 def main():
-    template = imageio.imread('shape_templates/circle.png')
+    import os, glob
+    from skimage.transform import resize
+    from matplotlib import pyplot as plt
 
-    for img_file in sorted(glob.glob('data/train/*.jpg')):
-        name = os.path.splitext(os.path.split(img_file)[1])[0]
-        mask_file = 'data/train/mask/mask.{}.png'.format(name)
-        gt_file = 'data/train/gt/gt.{}.txt'.format(name)
-        img = imageio.imread(img_file, as_gray = True)
-        img = np.round(img).astype(np.uint8)
-        mask = imageio.imread(mask_file)
-        gts = [line.split(' ') for line in open(gt_file, 'r').read().splitlines()]
-        for gt in gts:
-            bbox = np.round(list(map(int, map(float, gt[:4]))))
-            template = transform.resize(template, (bbox[2]-bbox[0], bbox[3]-bbox[1]), preserve_range=True)
-            template = np.round(template).astype(np.uint8)
-            #print(ccl_window_evaluation(mask, bbox))
-            template_matching_evaluation(img, template, bbox)
+    img_file = np.random.choice(glob.glob('data/train_val/val/*.jpg'))
+    name = os.path.splitext(os.path.split(img_file)[1])[0]
+    mask_file = 'data/train/mask/mask.{}.png'.format(name)
+    gt_file = 'data/train/gt/gt.{}.txt'.format(name)
+    img = imageio.imread(img_file, as_gray=True).astype(np.uint8)
+    mask = imageio.imread(mask_file)
+    plt.figure(); plt.imshow(img * mask)
+
+    gts = [line.split(' ') for line in open(gt_file, 'r').read().splitlines()]
+    for gt in gts:
+        bbox = np.round(list(map(int, map(float, gt[:4]))))
+        box_h, box_w = bbox[2]-bbox[0], bbox[3]-bbox[1]
+        #print(window_evaluation_features(mask, bbox))
+        for template in TEMPLATES:
+            template = resize(template, (box_h, box_w), preserve_range=True).astype(np.uint8)
+            plt.figure(); plt.imshow(template)
+            print(window_evaluation_template(img, bbox, template))
+    plt.show()
 
 
 if __name__ == '__main__':

@@ -4,14 +4,13 @@ import multiprocessing as mp
 import numpy as np
 import imageio
 from skimage.measure import label, regionprops
-from skimage import transform
+from skimage.transform import resize
 
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
-import cv2
 
 from evaluation.bbox_iou import bbox_iou
-from window_evaluation import ccl_window_evaluation, template_matching_evaluation
+import window_evaluation as we
 
 
 def candidate_generation_window_example1(im, pixel_candidates):
@@ -25,22 +24,34 @@ def candidate_generation_window_example2(im, pixel_candidates):
 
     return window_candidates
 
-def window_evaluation(pixel_candidates, bbox):
-    return bool(np.random.binomial(1, 0.0001))  # returns True with probability 0.0001
+
+# Create your own candidate_generation_window_xxx functions for other methods
+# Add them to the switcher dictionary in the switch_method() function
+# These functions should take an image, a pixel_candidates mask (and perhaps other parameters) as input and output the window_candidates list.
 
 
-def candidate_generation_window_ccl(im, pixel_candidates):
+def candidate_generation_window_ccl(im, pixel_candidates, eval_method):
     label_image = label(pixel_candidates)
     regions = regionprops(label_image)
+
     window_candidates = []
     for region in regions:
-        minr, minc, maxr, maxc = region.bbox
-        if ccl_window_evaluation(pixel_candidates, region.bbox):
-            window_candidates.append([minr, minc, maxr, maxc])
+        bbox = list(region.bbox)
+        box_h, box_w = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        if eval_method == 'features':
+            if we.window_evaluation_features(pixel_candidates, bbox):
+                window_candidates.append(bbox)
+        elif eval_method == 'template':
+            for template in we.TEMPLATES:
+                template = resize(template, (box_h, box_w), preserve_range=True).astype(np.uint8)
+                if we.window_evaluation_template(im, bbox, template):
+                    window_candidates.append(bbox)
+        else:
+            raise ValueError('Invalid method {}'.format(eval_method))
     return window_candidates
 
 
-def nms(bboxes, threshold=.5):
+def nms(bboxes, threshold=.4):
     # based on https://github.com/opencv/opencv/blob/master/modules/dnn/src/nms.inl.hpp
     indices = []
     for idx in range(len(bboxes)):
@@ -56,38 +67,21 @@ def nms(bboxes, threshold=.5):
 
 
 def _worker_template(x):
-    im, pixel_candidates, step, box_h, box_w, template = x
+    im, pixel_candidates, step, box_h, box_w = x
     h, w = im.shape[:2]
-    template = transform.resize(template, (box_h, box_w), preserve_range=True)
-    template = np.round(template).astype(np.uint8)
 
     window_candidates = []
-    for i in range(0, h-box_h, step):
-        for j in range(0, w-box_w, step):
-            bbox = [i, j, i+box_h, j+box_w]
-            if template_matching_evaluation(im, template, bbox):
-                window_candidates.append(bbox)
-
+    for template in we.TEMPLATES:
+        template = resize(template, (box_h, box_w), preserve_range=True).astype(np.uint8)
+        for i in range(0, h-box_h, step):
+            for j in range(0, w-box_w, step):
+                bbox = [i, j, i+box_h, j+box_w]
+                if we.window_evaluation_template(im, bbox, template):
+                    window_candidates.append(bbox)
     return window_candidates
 
 
-def template_matching(im, pixel_candidates, template, step=5, nms_threshold=.4):
-    scales = [(h, w) for h in range(30, 180, 20) for w in range(30, 180, 20)]
-
-    im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
-    im = np.round(im).astype(np.uint8)
-
-    with mp.Pool(processes=12) as p:
-        window_candidates = p.map(_worker_template, [(im, pixel_candidates, step, box_h, box_w, template) for box_h, box_w in scales])
-    window_candidates = [bbox for sublist in window_candidates for bbox in sublist]
-
-    indices = nms(window_candidates, threshold=nms_threshold)
-    window_candidates = [window_candidates[idx] for idx in indices]
-
-    return window_candidates
-
-
-def _worker(x):
+def _worker_features(x):
     im, pixel_candidates, step, box_h, box_w = x
     h, w = im.shape[:2]
 
@@ -95,17 +89,24 @@ def _worker(x):
     for i in range(0, h-box_h, step):
         for j in range(0, w-box_w, step):
             bbox = [i, j, i+box_h, j+box_w]
-            if window_evaluation(pixel_candidates, bbox):
+            if we.window_evaluation_features(pixel_candidates, bbox):
                 window_candidates.append(bbox)
-
     return window_candidates
 
 
-def sliding_window_par(im, pixel_candidates, step=5, nms_threshold=.4):
-    scales = [(h, w) for h in range(50, 250, 50) for w in range(50, 250, 50)]
+def sliding_window_par(im, pixel_candidates, eval_method, step=5, nms_threshold=.1):
+    # scales = [(h, w) for h in range(180, 30-1, -50) for w in range(180, 30-1, -50)]
+    scales = [(88, 83), (144, 137), (194, 202), (45, 43), (113, 102), (67, 62)]
+
+    if eval_method == 'features':
+        worker = _worker_features
+    elif eval_method == 'template':
+        worker = _worker_template
+    else:
+        raise ValueError('Invalid method {}'.format(eval_method))
 
     with mp.Pool(processes=12) as p:
-        window_candidates = p.map(_worker, [(im, pixel_candidates, step, box_h, box_w) for box_h, box_w in scales])
+        window_candidates = p.map(worker, [(im, pixel_candidates, step, box_h, box_w) for box_h, box_w in scales])
     window_candidates = [bbox for sublist in window_candidates for bbox in sublist]
 
     indices = nms(window_candidates, threshold=nms_threshold)
@@ -114,19 +115,33 @@ def sliding_window_par(im, pixel_candidates, step=5, nms_threshold=.4):
     return window_candidates
 
 
-def sliding_window_seq(im, pixel_candidates, step=5, nms_threshold=.4):
+def sliding_window_seq(im, pixel_candidates, eval_method, step=5, nms_threshold=.1):
     h, w = im.shape[:2]
-    scales = [(h, w) for h in range(50, 200, 50) for w in range(50, 200, 50)]  # TODO: adjust scales based on granulometry
+    # scales = [(h, w) for h in range(180, 30-1, -50) for w in range(180, 30-1, -50)]
+    scales = [(88, 83), (144, 137), (194, 202), (45, 43), (113, 102), (67, 62)]
 
     # generate windows
     window_candidates = []
     for box_h, box_w in scales:
-        for i in range(0, h-box_h, step):
-            for j in range(0, w-box_w, step):
-                bbox = [i, j, i+box_h, j+box_w]
-                # evaluate window (possible detection)
-                if window_evaluation(pixel_candidates, bbox):
-                    window_candidates.append(bbox)
+        if eval_method == 'features':
+            for i in range(0, h-box_h, step):
+                for j in range(0, w-box_w, step):
+                    bbox = [i, j, i+box_h, j+box_w]
+                    # evaluate window (possible detection)
+                    if we.window_evaluation_rand(pixel_candidates, bbox):
+                        window_candidates.append(bbox)
+        elif eval_method == 'template':
+            for template in we.TEMPLATES:
+                # resize template to match box size
+                template = resize(template, (box_h, box_w), preserve_range=True).astype(np.uint8)
+                for i in range(0, h - box_h, step):
+                    for j in range(0, w - box_w, step):
+                        bbox = [i, j, i + box_h, j + box_w]
+                        # evaluate window (possible detection)
+                        if we.window_evaluation_template(im, bbox, template):
+                            window_candidates.append(bbox)
+        else:
+            raise ValueError('Invalid method {}'.format(eval_method))
 
     # remove overlapping detections
     indices = nms(window_candidates, threshold=nms_threshold)
@@ -148,16 +163,17 @@ def visualize_boxes(pixel_candidates, window_candidates):
 
 def switch_method(im, pixel_candidates, method):
     switcher = {
-        'example1': candidate_generation_window_example1,
-        'example2': candidate_generation_window_example2,
-        'ccl': candidate_generation_window_ccl
+        'ccl_features': (candidate_generation_window_ccl, 'features'),
+        'ccl_template': (candidate_generation_window_ccl, 'template'),
+        'sw_features': (sliding_window_par, 'features'),
+        'sw_template': (sliding_window_par, 'template')
     }
 
     # Get the function from switcher dictionary
-    func = switcher.get(method, lambda: "Invalid method")
+    func, eval_method = switcher.get(method, lambda: "Invalid method")
 
     # Execute the function
-    window_candidates = func(im, pixel_candidates)
+    window_candidates = func(im, pixel_candidates, eval_method)
 
     return window_candidates
 
@@ -168,19 +184,15 @@ def candidate_generation_window(im, pixel_candidates, method):
 
 
 if __name__ == '__main__':
-    #window_candidates = candidate_generation_window(im, pixel_candidates, 'ccl')
-    #visualize_boxes(pixel_candidates, window_candidates)
-
     import glob, os, time
-    imfile = np.random.choice(glob.glob('data/train/*.jpg'))
-    name = os.path.splitext(os.path.split(imfile)[1])[0]
-    im = imageio.imread('data/train/{}.jpg'.format(name))
+    img_file = np.random.choice(glob.glob('data/train/*.jpg'))
+    name = os.path.splitext(os.path.split(img_file)[1])[0]
+    im = imageio.imread(img_file, as_gray=True).astype(np.uint8)
     mask = imageio.imread('data/train/mask/mask.{}.png'.format(name))
-    template = imageio.imread('shape_templates/circle.png')
 
     start = time.time()
-    window_candidates = template_matching(im, mask, template)
+    window_candidates = candidate_generation_window(im, mask, 'ccl_template')
     end = time.time()
-    print(end-start)
+    print('time: {}'.format(end-start))
 
     visualize_boxes(im, window_candidates)
