@@ -73,8 +73,7 @@ def _worker_template(x):
 
 
 def template_matching(im, pixel_candidates, template, step=5, nms_threshold=.4):
-    #scales = [(h, w) for h in range(50, 250, 50) for w in range(50, 250, 50)]
-    scales = [(150, 150)]
+    scales = [(h, w) for h in range(30, 160, 20) for w in range(30, 160, 20)]
 
     im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
     im = np.round(im).astype(np.uint8)
