@@ -4,17 +4,12 @@ from __future__ import division
 import os
 import glob
 import argparse
-import multiprocessing as mp
-from skimage import color
-from skimage import transform,io
-from PIL import Image
+from skimage import transform
 
 import numpy as np
 import imageio
-from collections import defaultdict, Counter
-import colorsys
+from collections import defaultdict
 from matplotlib import pyplot as plt
-import cv2
 
 
 def traffic_signal(img, bbox):
@@ -35,30 +30,19 @@ def form_factor(bbox):
     return width / height
 
 
-def filling_ratio(mask, bbox):
-    tly, tlx, bry, brx = bbox
-    width = brx - tlx
-    height = bry - tly
-    bbox_area = width * height
-    mask_area = size(mask, bbox)
-    return mask_area / bbox_area
+def data_shape_analysis(images_dir):
+    # Analysis of data per shape (find average sizes of the masks)
 
-
-if __name__ == '__main__':
-    template_gray = dict()
-    template_mask = dict()
     quantity_images = defaultdict(int)
-    mean_gray = defaultdict(int)
     mean_form_factor = defaultdict(int)
     mean_size = defaultdict(int)
     height = defaultdict(int)
     width = defaultdict(int)
 
-    #Analysis of data per shape (find average sizes of the masks)
-    for img_file in sorted(glob.glob('train_val/train/*.jpg')):
+    for img_file in sorted(glob.glob(os.path.join(images_dir, '*.jpg'))):
         name = os.path.splitext(os.path.split(img_file)[1])[0]
-        mask_file = 'train_val/train/mask/mask.{}.png'.format(name)
-        gt_file = 'train_val/train/gt/gt.{}.txt'.format(name)
+        mask_file = '{}/mask/mask.{}.png'.format(images_dir, name)
+        gt_file = '{}/gt/gt.{}.txt'.format(images_dir, name)
         img = imageio.imread(img_file)
         mask = imageio.imread(mask_file)
         gts = [line.split(' ') for line in open(gt_file, 'r').read().splitlines()]
@@ -75,7 +59,6 @@ if __name__ == '__main__':
             else:
                 shape = 'circle'
 
-
             mean_form_factor[shape] += form_factor(bbox)
             mean_size[shape] += size(mask, bbox)
             quantity_images[shape] += 1
@@ -83,28 +66,24 @@ if __name__ == '__main__':
     for label in quantity_images.keys():
         print(label)
 
-        mean_form_factor[label] = mean_form_factor[label]/quantity_images[label]
-        mean_size[label] = mean_size[label]/quantity_images[label]
-        width[label] = round(np.sqrt(mean_size[label]*mean_form_factor[label]))
-        height[label] = round(np.sqrt(mean_size[label]/mean_form_factor[label]))
+        mean_form_factor[label] = mean_form_factor[label] / quantity_images[label]
+        mean_size[label] = mean_size[label] / quantity_images[label]
+        width[label] = round(np.sqrt(mean_size[label] * mean_form_factor[label]))
+        height[label] = round(np.sqrt(mean_size[label] / mean_form_factor[label]))
 
-        print('MEAN')
-        print(mean_gray)
-        print('FORM')
-        print(mean_form_factor)
-        print('SIZE')
-        print(mean_size)
-        print('Height')
-        print(height)
-        print('Width')
-        print(width)
+    return height, width, quantity_images
 
-    #Computing the mean grayscale value of all signals per shape and the average of all masks per each shape
-    for img_file in sorted(glob.glob('train_val/train/*.jpg')):
+
+def create_templates(images_dir, output_dir, height, width, quantity_images):
+    # Computing the mean grayscale value of all signals per shape and the average of all masks per each shape
+    template_gray = dict()
+    template_mask = dict()
+
+    for img_file in sorted(glob.glob(os.path.join(images_dir, '*.jpg'))):
         name = os.path.splitext(os.path.split(img_file)[1])[0]
-        mask_file = 'train_val/train/mask/mask.{}.png'.format(name)
-        gt_file = 'train_val/train/gt/gt.{}.txt'.format(name)
-        img = imageio.imread(img_file, as_gray = True)
+        mask_file = '{}/mask/mask.{}.png'.format(images_dir, name)
+        gt_file = '{}/gt/gt.{}.txt'.format(images_dir, name)
+        img = imageio.imread(img_file, as_gray=True)
         mask = imageio.imread(mask_file)
         gts = [line.split(' ') for line in open(gt_file, 'r').read().splitlines()]
         for gt in gts:
@@ -133,9 +112,8 @@ if __name__ == '__main__':
                 template_gray[shape] = resized_img
                 template_mask[shape] = resized_mask
 
-
     #Visualize results and save templates in folder
-    fd = os.path.join('shape_templates_complete')
+    fd = os.path.join(output_dir)
     if not os.path.exists(fd):
         os.makedirs(fd)
 
@@ -150,8 +128,30 @@ if __name__ == '__main__':
         plt.show()
 
         template = template_gray[key]*template_mask[key]
-        plt.imshow(template_gray[key])
+        plt.imshow(template)
         plt.show()
 
         out_mask_name = os.path.join(fd, key + '.png')
         imageio.imwrite(out_mask_name, np.uint8(np.round(template)))
+
+
+def template_generation(images_dir, output_dir):
+    height, width, quantity_images = data_shape_analysis(images_dir)
+    create_templates(images_dir, output_dir, height, width, quantity_images)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('images_dir')
+    parser.add_argument('output_dir')
+    args = parser.parse_args()
+
+    template_generation(args.images_dir, args.output_dir)
+    #We run it as template_generation('train_val/train/', 'shape_templates')
+
+
+
+
+
+
+
