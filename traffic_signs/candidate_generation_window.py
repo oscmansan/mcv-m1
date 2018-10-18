@@ -8,6 +8,7 @@ from skimage import transform
 
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
+import cv2
 
 from evaluation.bbox_iou import bbox_iou
 from window_evaluation import ccl_window_evaluation, template_matching_evaluation
@@ -23,12 +24,6 @@ def candidate_generation_window_example2(im, pixel_candidates):
     window_candidates = [[21.0, 14.0, 54.0, 47.0], [63.0,92.0,103.0,132.0],[200.0,200.0,250.0,250.0]]
 
     return window_candidates
-
-
-# Create your own candidate_generation_window_xxx functions for other methods
-# Add them to the switcher dictionary in the switch_method() function
-# These functions should take an image, a pixel_candidates mask (and perhaps other parameters) as input and output the window_candidates list.
-
 
 def window_evaluation(pixel_candidates, bbox):
     return bool(np.random.binomial(1, 0.0001))  # returns True with probability 0.0001
@@ -80,6 +75,9 @@ def _worker_template(x):
 def template_matching(im, pixel_candidates, template, step=5, nms_threshold=.4):
     #scales = [(h, w) for h in range(50, 250, 50) for w in range(50, 250, 50)]
     scales = [(150, 150)]
+
+    im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    im = np.round(im).astype(np.uint8)
 
     with mp.Pool(processes=4) as p:
         window_candidates = p.map(_worker_template, [(im, pixel_candidates, step, box_h, box_w, template) for box_h, box_w in scales])
@@ -178,8 +176,7 @@ if __name__ == '__main__':
     import glob, os, time
     imfile = np.random.choice(glob.glob('data/train/01.000936.jpg'))
     name = os.path.splitext(os.path.split(imfile)[1])[0]
-    im = imageio.imread('data/train/{}.jpg'.format(name), as_gray = True)
-    im = np.round(im).astype(np.uint8)
+    im = imageio.imread('data/train/{}.jpg'.format(name))
     mask = imageio.imread('data/train/mask/mask.{}.png'.format(name))
     template = imageio.imread('shape_templates/circle.png')
 

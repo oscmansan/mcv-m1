@@ -49,7 +49,6 @@ def template_matching_evaluation(mask, template, bbox):
     threshold = 0.6
     #matched = cv2.matchTemplate(window, template, cv2.TM_CCORR_NORMED)  # returns float32
     matched = correlation_coefficient(window, template)
-    #print(matched)
     if abs(matched) > threshold:
         return True
     return False
@@ -68,6 +67,8 @@ def main():
         gts = [line.split(' ') for line in open(gt_file, 'r').read().splitlines()]
         for gt in gts:
             bbox = np.round(list(map(int, map(float, gt[:4]))))
+            template = transform.resize(template, (bbox[2]-bbox[0], bbox[3]-bbox[1]), preserve_range=True)
+            template = np.round(template).astype(np.uint8)
             #print(ccl_window_evaluation(mask, bbox))
             template_matching_evaluation(img, template, bbox)
 
