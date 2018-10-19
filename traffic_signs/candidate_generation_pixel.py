@@ -51,7 +51,7 @@ def candidate_generation_pixel_ihsl1(im):
 
     # convert input image to IHSL color space
     hsl = rgb2ihsl(im)
-    H, S, L = (hsl[:, :, 0]/359, hsl[:, :, 1]/255, hsl[:, :, 2]/255)
+    H, S, L = (hsl[:, :, 0] / 359, hsl[:, :, 1] / 255, hsl[:, :, 2] / 255)
 
     # set color references as White, Red and Blue:
     SR = 0.815
@@ -96,42 +96,42 @@ def candidate_generation_pixel_ihsl2(im):
     The method is explained in 'Color Detection And Segmentation For Road And Traffic Signs' (H. Fleyeh).
     """
 
-    #convert input image to IHLS color space
+    # convert input image to IHLS color space
     hsl = rgb2ihsl(im)
     H, S, L = (hsl[:, :, 0], hsl[:, :, 1], hsl[:, :, 2])
-    size = im.shape #(n, m, channels)
+    size = im.shape  # (n, m, channels)
 
     Hout = np.zeros((size[0], size[1]))
     Sout = np.zeros((size[0], size[1]))
     pixel_candidates = np.zeros((size[0], size[1]))
 
-    #normalize S and H to [0, 255]
+    # normalize S and H to [0, 255]
 
-    S = 255*S/np.max(S)
+    S = 255 * S / np.max(S)
     H = np.nan_to_num(H)
-    H = 255*H/np.max(H)
+    H = 255 * H / np.max(H)
 
     Smin = 51
     Smax = 170
 
-    #the range of H defines the color (we want white, red and blue)
-    #values obtained from hue histograms in train images, in color_ranges.py
+    # the range of H defines the color (we want white, red and blue)
+    # values obtained from hue histograms in train images, in color_ranges.py
     Hmin = [146, 2, 104]
     Hmax = [170, 7, 142]
 
     for i in range(size[0]):
         for j in range(size[1]):
-            if S[i,j] <= Smin:
-                Sout[i,j] = 0
-            elif S[i,j] < Smax:
+            if S[i, j] <= Smin:
+                Sout[i, j] = 0
+            elif S[i, j] < Smax:
                 Sout[i, j] = S[i, j]
             else:
                 Sout[i, j] = 255
             for k in range(len(Hmin)):
-                if H[i,j] >= Hmin[k] or H[i,j] <= Hmax[k]:
+                if H[i, j] >= Hmin[k] or H[i, j] <= Hmax[k]:
                     Hout[i, j] = max(255, Hout[i, j])
 
-            pixel_candidates[i,j] = (Sout[i,j] and Hout[i,j])
+            pixel_candidates[i, j] = (Sout[i, j] and Hout[i, j])
 
     return pixel_candidates
 
@@ -150,11 +150,11 @@ def candidate_generation_pixel_hsv_euclidean(rgb):
     masks = []
     for ref, thresh in zip(ref_colors, thresholds):
         ref = np.tile(ref, hsv.shape[:2] + (1,))
-        h1 = hsv[:,:,0]
-        s1 = hsv[:,:,1]
-        h2 = ref[:,:,0]
-        s2 = ref[:,:,1]
-        dist = ((h2-h1)**2 + (s2-s1)**2)**0.5
+        h1 = hsv[:, :, 0]
+        s1 = hsv[:, :, 1]
+        h2 = ref[:, :, 0]
+        s2 = ref[:, :, 1]
+        dist = ((h2 - h1) ** 2 + (s2 - s1) ** 2) ** 0.5
         mask = dist < thresh
         masks.append(mask)
 
@@ -182,36 +182,6 @@ def candidate_generation_pixel_rgb(im):
     pixel_candidates = col0_candidates | col1_candidates | col2_candidates;
 
     return pixel_candidates
-
-def morphological_filtering(mask):
-    """
-        Apply morphological operations to prepare pixel candidates to be selected as a traffic signal or not.
-    """
-    mask_filled = fill_holes(mask)
-    mask_filtered = filter_noise(mask_filled)
-    return mask_filtered
-
-def candidate_generation_pixel_hsv_ranges(rgb):
-    """
-    Convert from RGB to HSV and filter pixels depending on whether they belong
-    to a set of ranges. Ranges are computed empirically.
-    """
-
-    lower_red = np.array([[0, 100, 50], [10, 255, 255]])
-    upper_red = np.array([[170, 100, 50], [179, 255, 255]])
-    blue = np.array([[90, 100, 50], [135, 255, 255]])
-    ranges = [lower_red, upper_red, blue]
-
-    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
-
-    h, w = hsv.shape[:2]
-    mask = np.zeros((h, w), dtype=np.uint8)
-    for r in ranges:
-        lowerb, upperb = r
-        mask |= cv2.inRange(hsv, lowerb, upperb)
-    mask = (mask / 255).astype(np.uint8)
-
-    return mask
 
 
 def candidate_generation_pixel_hsv_ranges(rgb):
