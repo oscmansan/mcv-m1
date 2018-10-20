@@ -33,6 +33,7 @@ def candidate_generation_window_example2(im, pixel_candidates):
 def candidate_generation_window_ccl(im, pixel_candidates, eval_method):
     label_image = label(pixel_candidates)
     regions = regionprops(label_image)
+    masked_im = im*pixel_candidates
 
     window_candidates = []
     for region in regions:
@@ -44,7 +45,7 @@ def candidate_generation_window_ccl(im, pixel_candidates, eval_method):
         elif eval_method == 'template':
             for template in we.TEMPLATES:
                 template = resize(template, (box_h, box_w), preserve_range=True).astype(np.uint8)
-                if we.window_evaluation_template(im, bbox, template):
+                if we.window_evaluation_template(masked_im, bbox, template, corr_thresh=0.7):
                     window_candidates.append(bbox)
         else:
             raise ValueError('Invalid method {}'.format(eval_method))
@@ -69,6 +70,7 @@ def nms(bboxes, threshold=.4):
 def _worker_template(x):
     im, pixel_candidates, step, box_h, box_w = x
     h, w = im.shape[:2]
+    masked_im = im*pixel_candidates
 
     window_candidates = []
     for template in we.TEMPLATES:
@@ -76,7 +78,7 @@ def _worker_template(x):
         for i in range(0, h-box_h, step):
             for j in range(0, w-box_w, step):
                 bbox = [i, j, i+box_h, j+box_w]
-                if we.window_evaluation_template(im, bbox, template):
+                if we.window_evaluation_template(masked_im, bbox, template, corr_thresh=0.7):
                     window_candidates.append(bbox)
     return window_candidates
 
@@ -138,7 +140,7 @@ def sliding_window_seq(im, pixel_candidates, eval_method, step=5, nms_threshold=
                     for j in range(0, w - box_w, step):
                         bbox = [i, j, i + box_h, j + box_w]
                         # evaluate window (possible detection)
-                        if we.window_evaluation_template(im, bbox, template):
+                        if we.window_evaluation_template(im*pixel_candidates, bbox, template):
                             window_candidates.append(bbox)
         else:
             raise ValueError('Invalid method {}'.format(eval_method))

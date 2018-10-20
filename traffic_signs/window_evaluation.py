@@ -52,7 +52,7 @@ def correlation_coefficient(patch1, patch2):
     return norm_corr
 
 
-def window_evaluation_template(im, bbox, template, corr_thresh=.6):
+def window_evaluation_template(im, bbox, template, corr_thresh=.7):
     tly, tlx, bry, brx = bbox
     window = im[tly:bry, tlx:brx]
     corr = correlation_coefficient(window, template)
