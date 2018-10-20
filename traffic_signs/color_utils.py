@@ -20,8 +20,9 @@ def rgb2ihsl(r, g, b):
     """
 
     tmp1 = r - g/2 - b/2
-    tmp2 = (r**2 + g**2 + b**2 - r*g - r*b - g*b)**0.5
-    theta = np.degrees(np.arccos(tmp1 / tmp2)) if tmp2>0 else 0
+    tmp2 = max((r**2 + g**2 + b**2 - r*g - r*b - g*b), 0)**0.5
+    tmp3 = np.clip(tmp1/tmp2, -1, 1)
+    theta = np.degrees(np.arccos(tmp3)) if tmp2>0 else 0
 
     h = 360-theta if b>g else theta
     s = max(r, g, b) - min(r, g, b)
@@ -41,8 +42,9 @@ def vrgb2ihsl(im):
     b = im[:, :, 2]
 
     tmp1 = r - g/2 - b/2
-    tmp2 = (r**2 + g**2 + b**2 - r*g - r*b - g*b)**0.5
-    theta = np.where(tmp2>0, np.degrees(np.arccos(tmp1 / tmp2)), 0)
+    tmp2 = np.max((r**2 + g**2 + b**2 - r*g - r*b - g*b), 0)**0.5
+    tmp3 = np.clip(tmp1/tmp2, -1, 1)
+    theta = np.where(tmp2>0, np.degrees(np.arccos(tmp3)), 0)
 
     h = np.where(b>g, 360-theta, theta)
     s = np.max(im, axis=2) - np.min(im, axis=2)

@@ -1,53 +1,46 @@
-#!/usr/bin/env python3
-import glob
-import collections
-
-import imageio
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
+import copy
+
 
 def fill_holes(mask):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-    mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
-    #mask = cv2.medianBlur(mask, 7)
-    return mask
+    im_floodfill = mask.astype(np.uint8).copy()
+    h, w = im_floodfill.shape[:2]
+    filling_mask = np.zeros((h + 2, w + 2), np.uint8)
+    cv2.floodFill(im_floodfill, filling_mask, (0, 0), 1)
+    return mask.astype(np.uint8) | (1 - im_floodfill)
+
 
 def filter_noise(mask):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
     mask = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel)
-    #mask = cv2.medianBlur(mask, 7)
+    mask = cv2.medianBlur(mask, 7)
     return mask
 
+
 def granulometry(mask, steps, dict_kernels):
+    """
+        Granulometry study used to choose the size of kernels
+    """
+    new_mask = copy.deepcopy(mask.astype(np.uint8))
     g_curve = np.zeros(steps)
-    g_curve[0] = 0
-    for i in range(steps-1):
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (i+1, i+1))
-        remain = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel)
-        g_curve[i+1] = np.sum(np.abs(remain))
-    pecstrum = np.gradient(g_curve)
+    for i in range(steps - 1):
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (i + 1, i + 1))
+        remain = cv2.morphologyEx(new_mask, cv2.MORPH_OPEN, kernel)
+        g_curve[i + 1] = np.sum(np.abs(np.count_nonzero(remain)))
+        new_mask = remain
+
+    g_curve[0] = g_curve[1]
+    pecstrum = -np.gradient(g_curve)
     pecstrum = np.array(pecstrum)
-    for i in range(3):
-        peak = np.where(pecstrum==max(pecstrum))[0][0]
+    plt.plot(pecstrum)
+
+    for i in range(2):
+        peak = np.where(pecstrum == max(pecstrum))[0][0]
         if peak in dict_kernels.keys():
-            dict_kernels[peak]+=1
+            dict_kernels[peak] += 1
         else:
-            dict_kernels[peak]=1
+            dict_kernels[peak] = 1
         pecstrum[peak] = min(pecstrum)
     return dict_kernels
-
-def main():
-    max_size = 30
-    dict_kernels = collections.defaultdict()
-    for mask_file in sorted(glob.glob('output\hsv_euclidean_None/*.png')):
-        print(mask_file)
-        mask = imageio.imread(mask_file)
-        dict_kernels = granulometry(mask, max_size, dict_kernels)
-
-    plt.hist(dict_kernels.values())
-    print(plt.keys())
-    plt.show()
-
-if __name__ == '__main__':
-    main()
