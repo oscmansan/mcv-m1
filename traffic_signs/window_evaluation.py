@@ -3,10 +3,12 @@ import numpy as np
 import imageio
 
 import data_analysis as da
-
+from integral_image_utils import sum_region
 
 OBJECT_SIZE_MAX = 30000
 OBJECT_SIZE_MIN = 460
+OBJECT_FORMFACTOR_MAX = 1.4
+OBJECT_FORMFACTOR_MIN = 0.44
 FILLING_RATIOS = [0.49, 0.74, 1.0]
 
 # load templates
@@ -17,10 +19,15 @@ TRIANGLE_INV_TEMPLATE = imageio.imread('data/templates/triangle_inv.png')
 TEMPLATES = [CIRCLE_TEMPLATE, SQUARE_TEMPLATE, TRIANGLE_TEMPLATE, TRIANGLE_INV_TEMPLATE]
 
 
-def window_evaluation_features(pixel_candidates, bbox, fr_thresh=.1):
+def window_evaluation_features(pixel_candidates, bbox, fr_thresh=.1, sr_thresh=.01):
     # discard by size
     object_size = da.size(pixel_candidates, bbox)
     if (object_size < OBJECT_SIZE_MIN) or (object_size > OBJECT_SIZE_MAX):
+        return False
+
+    # discard by form factor
+    object_ff = da.form_factor(bbox)
+    if (object_ff < OBJECT_FORMFACTOR_MIN) or (object_ff > OBJECT_FORMFACTOR_MAX):
         return False
 
     # discard by filling ratio
@@ -29,20 +36,47 @@ def window_evaluation_features(pixel_candidates, bbox, fr_thresh=.1):
     if dist > fr_thresh:
         return False
 
+    #discard by being part of a larger object detected
+    tly, tlx, bry, brx = bbox
+    tly2 =tly-1 if tly>0 else tly
+    tlx2 =tlx-1 if tly>0 else tlx
+    bry2 =bry+1 if tly>0 else bry
+    brx2 =brx+1 if tly>0 else brx
+    surround_bbox = [tly2, tlx2, bry2, brx2]
+    object_surround_size = da.size(pixel_candidates, surround_bbox)
+    if (object_surround_size-object_size)/object_size > sr_thresh:
+        return False
     return True
 
 
-def window_evaluation_integral_image(window_size, bbox):
+def window_evaluation_integral_image(integral_image, bbox, fr_thresh=.1, sr_thresh=.01):
+
+    # discard by size
     tly, tlx, bry, brx = bbox
+    object_size = sum_region(integral_image, [tly, tlx], [bry,brx])
+    if (object_size < OBJECT_SIZE_MIN) or (object_size > OBJECT_SIZE_MAX):
+        return False
+
+    # discard by filling ratio
+
     width = brx - tlx
     height = bry - tly
     bbox_area = width * height
-    window_filling_ratio = window_size / bbox_area
-    threshold = 0.1
-    dist = min(abs(np.array(FILLING_RATIOS) - window_filling_ratio))
-    if dist < threshold and OBJECT_SIZE_MIN < window_size < OBJECT_SIZE_MAX:
-        return True
-    return False
+    fr = object_size / bbox_area
+    dist = min(abs(np.array(FILLING_RATIOS) - fr))
+    if dist > fr_thresh:
+        return False
+
+    #discard by being part of a larger object detected
+    tly, tlx, bry, brx = bbox
+    tly2 =tly-1 if tly>0 else tly
+    tlx2 =tlx-1 if tly>0 else tlx
+    bry2 =bry+1 if tly>0 else bry
+    brx2 =brx+1 if tly>0 else brx
+    object_surround_size = sum_region(integral_image, [tly2, tlx2], [bry2,brx2])
+    if (object_surround_size-object_size)/object_size > sr_thresh:
+        return False
+    return True
 
 
 def correlation_coefficient(patch1, patch2):
