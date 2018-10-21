@@ -101,7 +101,7 @@ def _worker_template(x):
         tlx, tly = max_loc
         score = max_val
         if score > 0.8:
-            bbox = [tlx, tly, tlx + box_h, tly + box_w]
+            bbox = [tly, tlx, tly + box_h, tlx + box_w]
             window_candidates.append(bbox)
 
     return window_candidates
@@ -128,7 +128,7 @@ def _worker_features_integral(x):
     for i in range(0, h-box_h, step):
         for j in range(0, w-box_w, step):
             bbox = [i, j, i+box_h, j+box_w]
-            if we.window_evaluation_integral_image(integral_image,bbox):
+            if we.window_evaluation_integral_image(integral_image, bbox):
                 window_candidates.append(bbox)
     return window_candidates
 
