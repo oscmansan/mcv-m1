@@ -98,7 +98,7 @@ def _worker_features(x):
 
 def sliding_window_par(im, pixel_candidates, eval_method, step=5, nms_threshold=.1):
     # scales = [(h, w) for h in range(180, 30-1, -50) for w in range(180, 30-1, -50)]
-    scales = [(88, 83), (144, 137), (194, 202), (45, 43), (113, 102), (67, 62)]
+    scales = [(217, 235), (181, 186), (140, 143), (164, 113), (116, 117), (100, 99), (119, 78), (82, 80), (66, 60), (45, 43)]
 
     if eval_method == 'features':
         worker = _worker_features
@@ -120,7 +120,7 @@ def sliding_window_par(im, pixel_candidates, eval_method, step=5, nms_threshold=
 def sliding_window_seq(im, pixel_candidates, eval_method, step=5, nms_threshold=.1):
     h, w = im.shape[:2]
     # scales = [(h, w) for h in range(180, 30-1, -50) for w in range(180, 30-1, -50)]
-    scales = [(88, 83), (144, 137), (194, 202), (45, 43), (113, 102), (67, 62)]
+    scales = [(217, 235), (181, 186), (140, 143), (164, 113), (116, 117), (100, 99), (119, 78), (82, 80), (66, 60), (45, 43)]
 
     # generate windows
     window_candidates = []
@@ -130,7 +130,7 @@ def sliding_window_seq(im, pixel_candidates, eval_method, step=5, nms_threshold=
                 for j in range(0, w-box_w, step):
                     bbox = [i, j, i+box_h, j+box_w]
                     # evaluate window (possible detection)
-                    if we.window_evaluation_rand(pixel_candidates, bbox):
+                    if we.window_evaluation_features(pixel_candidates, bbox):
                         window_candidates.append(bbox)
         elif eval_method == 'template':
             for template in we.TEMPLATES:
@@ -154,7 +154,7 @@ def sliding_window_seq(im, pixel_candidates, eval_method, step=5, nms_threshold=
 
 def visualize_boxes(pixel_candidates, window_candidates):
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.imshow(pixel_candidates * 255)
+    ax.imshow(pixel_candidates)
     for candidate in window_candidates:
         minr, minc, maxr, maxc = candidate
         rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     mask = imageio.imread('data/train/mask/mask.{}.png'.format(name))
 
     start = time.time()
-    window_candidates = candidate_generation_window(im, mask, 'ccl_template')
+    window_candidates = candidate_generation_window(im, mask, 'sw_template')
     end = time.time()
     print('time: {}'.format(end-start))
 
