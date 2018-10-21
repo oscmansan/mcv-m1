@@ -12,7 +12,7 @@ import matplotlib.patches as mpatches
 
 from evaluation.bbox_iou import bbox_iou
 import window_evaluation as we
-
+import integral_image_utils as ii
 
 def candidate_generation_window_example1(im, pixel_candidates):
     window_candidates = [[17.0, 12.0, 49.0, 44.0], [60.0,90.0,100.0,130.0]]
@@ -101,7 +101,7 @@ def _worker_template(x):
         tlx, tly = max_loc
         score = max_val
         if score > 0.8:
-            bbox = [tly, tlx, tly + box_h, tlx + box_w]
+            bbox = [tlx, tly, tlx + box_h, tly + box_w]
             window_candidates.append(bbox)
 
     return window_candidates
@@ -119,6 +119,18 @@ def _worker_features(x):
                 window_candidates.append(bbox)
     return window_candidates
 
+def _worker_features_integral(x):
+    im, pixel_candidates, step, box_h, box_w = x
+    h, w = im.shape[:2]
+
+    window_candidates = []
+    integral_image = ii.to_integral_image(im)
+    for i in range(0, h-box_h, step):
+        for j in range(0, w-box_w, step):
+            bbox = [i, j, i+box_h, j+box_w]
+            if we.window_evaluation_integral_image(integral_image,bbox):
+                window_candidates.append(bbox)
+    return window_candidates
 
 def sliding_window_par(im, pixel_candidates, eval_method, step=5, nms_threshold=.1):
     # scales = [(h, w) for h in range(180, 30-1, -50) for w in range(180, 30-1, -50)]
@@ -192,7 +204,8 @@ def switch_method(im, pixel_candidates, method):
         'ccl_features': (candidate_generation_window_ccl, 'features'),
         'ccl_template': (candidate_generation_window_ccl, 'template'),
         'sw_features': (sliding_window_par, 'features'),
-        'sw_template': (sliding_window_par, 'template')
+        'sw_template': (sliding_window_par, 'template'),
+        'sw_feature_integral': (sliding_window_par, 'integral')
     }
 
     # Get the function from switcher dictionary

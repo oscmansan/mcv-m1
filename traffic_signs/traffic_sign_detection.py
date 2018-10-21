@@ -89,10 +89,11 @@ def traffic_sign_detection(directory, output_dir, pixel_method, window_method):
             windowFN = windowFN + localWindowFN
             windowFP = windowFP + localWindowFP
 
-            # Plot performance evaluation
-            [window_precision, window_sensitivity, window_accuracy] = evalf.performance_evaluation_window(windowTP, windowFN, windowFP)
-
     pixel_time /= len(file_names)
+
+    # Plot performance evaluation
+    [window_precision, window_sensitivity, window_accuracy] = evalf.performance_evaluation_window(windowTP, windowFN,windowFP)
+    print(window_precision, window_sensitivity, window_accuracy,windowTP, windowFN,windowFP)
 
     return [pixel_precision, pixel_accuracy, pixel_recall, pixel_specificity, pixel_sensitivity, pixel_F1, pixel_TP, pixel_FP, pixel_FN, pixel_time]
 

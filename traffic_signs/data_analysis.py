@@ -30,6 +30,12 @@ def filling_ratio(mask, bbox):
     mask_area = size(mask, bbox)
     return mask_area / bbox_area
 
+def filling_ratio_integral(mask_area, bbox):
+    tly, tlx, bry, brx = bbox
+    width = brx - tlx
+    height = bry - tly
+    bbox_area = width * height
+    return mask_area / bbox_area
 
 def compute_num_overlap(gts, img):
     if len(gts) > 1:
@@ -38,7 +44,6 @@ def compute_num_overlap(gts, img):
             for j in range(i + 1, len(gts)):
                 bboxB = list(map(float, gts[j][:4]))
                 print(img, bbox_iou(bboxA, bboxB))
-
 
 def height(bbox):
     tly, tlx, bry, brx = bbox

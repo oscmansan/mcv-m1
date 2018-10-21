@@ -93,11 +93,11 @@ def performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN):
     
     The function returns the precision, accuracy, specificity and sensitivity
     """
-    pixel_precision   = float(pixelTP) / float(pixelTP+pixelFP)
-    pixel_accuracy    = float(pixelTP+pixelTN) / float(pixelTP+pixelFP+pixelFN+pixelTN)
-    pixel_specificity = float(pixelTN) / float(pixelTN+pixelFP)
-    pixel_sensitivity = float(pixelTP) / float(pixelTP+pixelFN)
-    pixel_recall      = float(pixelTP) / float(pixelTP + pixelFN)
+    pixel_precision   = np.float64(pixelTP) / np.float64(pixelTP+pixelFP)
+    pixel_accuracy    = np.float64(pixelTP+pixelTN) / np.float64(pixelTP+pixelFP+pixelFN+pixelTN)
+    pixel_specificity = np.float64(pixelTN) / np.float64(pixelTN+pixelFP)
+    pixel_sensitivity = np.float64(pixelTP) / np.float64(pixelTP+pixelFN)
+    pixel_recall      = np.float64(pixelTP) / np.float64(pixelTP + pixelFN)
     pixel_F1          = stats.hmean([pixel_precision, pixel_recall]) if (pixel_precision>0 and pixel_recall>0) else 0
 
     return [pixel_precision, pixel_accuracy, pixel_recall, pixel_specificity, pixel_sensitivity, pixel_F1, pixelTP, pixelFP, pixelFN]
@@ -121,9 +121,9 @@ def performance_evaluation_window(TP, FN, FP):
     The function returns the precision, accuracy and sensitivity
     """
     
-    precision   = float(TP) / float(TP+FP); # Q: What if i do not have TN?
-    sensitivity = float(TP) / float(TP+FN)
-    accuracy    = float(TP) / float(TP+FN+FP);
+    precision   = np.float64(TP) / np.float64(TP+FP); # Q: What if i do not have TN?
+    sensitivity = np.float64(TP) / np.float64(TP+FN)
+    accuracy    = np.float64(TP) / np.float64(TP+FN+FP);
 
     return [precision, sensitivity, accuracy]
 
