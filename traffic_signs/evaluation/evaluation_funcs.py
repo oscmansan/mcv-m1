@@ -93,11 +93,11 @@ def performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN):
     
     The function returns the precision, accuracy, specificity and sensitivity
     """
-    pixel_precision   = float(pixelTP) / float(pixelTP+pixelFP)
-    pixel_accuracy    = float(pixelTP+pixelTN) / float(pixelTP+pixelFP+pixelFN+pixelTN)
-    pixel_specificity = float(pixelTN) / float(pixelTN+pixelFP)
-    pixel_sensitivity = float(pixelTP) / float(pixelTP+pixelFN)
-    pixel_recall      = float(pixelTP) / float(pixelTP + pixelFN)
+    pixel_precision   = float(pixelTP) / float(pixelTP+pixelFP) if pixelTP+pixelFP>0 else 0
+    pixel_accuracy    = float(pixelTP+pixelTN) / float(pixelTP+pixelFP+pixelFN+pixelTN) if pixelTP+pixelFP+pixelFN+pixelTN>0 else 0
+    pixel_specificity = float(pixelTN) / float(pixelTN+pixelFP) if pixelTN+pixelFP>0 else 0
+    pixel_sensitivity = float(pixelTP) / float(pixelTP+pixelFN) if pixelTP+pixelFN>0 else 0
+    pixel_recall      = float(pixelTP) / float(pixelTP+pixelFN) if pixelTP+pixelFN>0 else 0
     pixel_F1          = stats.hmean([pixel_precision, pixel_recall]) if (pixel_precision>0 and pixel_recall>0) else 0
 
     return [pixel_precision, pixel_accuracy, pixel_recall, pixel_specificity, pixel_sensitivity, pixel_F1, pixelTP, pixelFP, pixelFN]
