@@ -5,6 +5,7 @@ import numpy as np
 import imageio
 from skimage.measure import label, regionprops
 from skimage.transform import resize
+import cv2
 
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
@@ -75,11 +76,22 @@ def _worker_template(x):
     window_candidates = []
     for template in we.TEMPLATES:
         template = resize(template, (box_h, box_w), preserve_range=True).astype(np.uint8)
-        for i in range(0, h-box_h, step):
-            for j in range(0, w-box_w, step):
-                bbox = [i, j, i+box_h, j+box_w]
-                if we.window_evaluation_template(masked_im, bbox, template, corr_thresh=0.7):
-                    window_candidates.append(bbox)
+
+        #for i in range(0, h-box_h, step):
+        #    for j in range(0, w-box_w, step):
+        #        bbox = [i, j, i+box_h, j+box_w]
+        #        if we.window_evaluation_template(masked_im, bbox, template, corr_thresh=0.7):
+        #            window_candidates.append(bbox)
+
+        # OpenCV implementation of template matching is a lot faster
+        res = cv2.matchTemplate(masked_im, template, method=cv2.TM_CCORR_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+        tlx, tly = max_loc
+        score = max_val
+        if score > 0.8:
+            bbox = [tly, tlx, tly + box_h, tlx + box_w]
+            window_candidates.append(bbox)
+
     return window_candidates
 
 
