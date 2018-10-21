@@ -4,5 +4,7 @@ Introduction to Human and Computer Vision project code
 #### Team 6
 
     Gemma Canet Tarrés
-    Oscar Mañas Sanchez
+    Daniel Fuentes López
     María Gil Aragones
+    Oscar Mañas Sanchez
+    
