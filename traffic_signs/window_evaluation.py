@@ -12,10 +12,10 @@ OBJECT_FORMFACTOR_MIN = 0.44
 FILLING_RATIOS = [0.49, 0.74, 1.0]
 
 # load templates
-CIRCLE_TEMPLATE = imageio.imread('data/templates/circle.png')
-SQUARE_TEMPLATE = imageio.imread('data/templates/square.png')
-TRIANGLE_TEMPLATE = imageio.imread('data/templates/triangle.png')
-TRIANGLE_INV_TEMPLATE = imageio.imread('data/templates/triangle_inv.png')
+CIRCLE_TEMPLATE = imageio.imread('templates/circle.png')
+SQUARE_TEMPLATE = imageio.imread('templates/square.png')
+TRIANGLE_TEMPLATE = imageio.imread('templates/triangle.png')
+TRIANGLE_INV_TEMPLATE = imageio.imread('templates/triangle_inv.png')
 TEMPLATES = [CIRCLE_TEMPLATE, SQUARE_TEMPLATE, TRIANGLE_TEMPLATE, TRIANGLE_INV_TEMPLATE]
 
 
