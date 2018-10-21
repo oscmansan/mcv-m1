@@ -53,14 +53,26 @@ def candidate_generation_window_ccl(im, pixel_candidates, eval_method):
     return window_candidates
 
 
+def is_contained(container, content):
+    return container[0] <= content[0] and \
+           container[1] <= content[1] and \
+           container[2] >= content[2] and \
+           container[3] >= content[3]
+
+
 def nms(bboxes, threshold=.4):
     # based on https://github.com/opencv/opencv/blob/master/modules/dnn/src/nms.inl.hpp
+
+    # sort bboxes by area descending
+    bboxes.sort(key=lambda x: (x[2]-x[0])*(x[3]-x[1]), reverse=True)
+
     indices = []
     for idx in range(len(bboxes)):
         keep = True
         for kept_idx in indices:
             overlap = bbox_iou(bboxes[idx], bboxes[kept_idx])
-            if overlap > threshold:
+            contained = is_contained(bboxes[idx], bboxes[kept_idx]) or is_contained(bboxes[kept_idx], bboxes[idx])
+            if contained or overlap > threshold:
                 keep = False
                 break
         if keep:
@@ -193,7 +205,8 @@ def switch_method(im, pixel_candidates, method):
 
 
 def candidate_generation_window(im, pixel_candidates, method):
-    window_candidates = switch_method(im, pixel_candidates, method)
+    im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    window_candidates = switch_method(im_gray, pixel_candidates, method)
     return window_candidates
 
 
@@ -201,12 +214,14 @@ if __name__ == '__main__':
     import glob, os, time
     img_file = np.random.choice(glob.glob('data/train/*.jpg'))
     name = os.path.splitext(os.path.split(img_file)[1])[0]
-    im = imageio.imread(img_file, as_gray=True).astype(np.uint8)
-    mask = imageio.imread('data/train/mask/mask.{}.png'.format(name))
+    im = imageio.imread(img_file)
+    mask = imageio.imread('output/hsv_ranges/{}.png'.format(name))
 
     start = time.time()
     window_candidates = candidate_generation_window(im, mask, 'sw_template')
     end = time.time()
     print('time: {}'.format(end-start))
 
+    im_gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    visualize_boxes(im_gray*mask, window_candidates)
     visualize_boxes(im, window_candidates)
