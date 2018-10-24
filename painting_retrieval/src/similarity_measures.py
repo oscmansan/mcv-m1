@@ -4,6 +4,20 @@ from sklearn.cluster import KMeans
 from collections import Counter
 
 
+def similarity(u, v):
+    """
+    Compare descriptor vectors based on a similarity measure.
+
+    Args:
+        u (ndarray): 1D array of type np.float32 containing image descriptors.
+        v (ndarray): 1D array of type np.float32 containing image descriptors.
+
+    Returns:
+        float: similarity score between 0 and 1.
+    """
+    pass
+
+
 def similarity_correlation(u, v):
     """
     Compare descriptor vectors based on a similarity correlation.
@@ -48,6 +62,34 @@ def similarity_hellinguer(u, v):
     return 1 - cv2.compareHist(u, v, cv2.HISTCMP_HELLINGER)
 
 
+def similarity_Bhattacharya(u, v):
+    """
+    Compare descriptor vectors based on Bhattacharyya distance.
+
+    Args:
+        u (ndarray): 1D array of type np.float32 containing image descriptors.
+        v (ndarray): 1D array of type np.float32 containing image descriptors.
+
+    Returns:
+        float: similarity score between 0(equal) and >0(high values means more difference).
+    """
+    return cv2.compareHist(u, v, cv2.HISTCMP_BHATTACHARYYA)
+
+
+def similarity_Intersect(u, v):
+    """
+    Compare descriptor vectors based on intersection between histograms.
+
+    Args:
+        u (ndarray): 1D array of type np.float32 containing image descriptors.
+        v (ndarray): 1D array of type np.float32 containing image descriptors.
+
+    Returns:
+        float: similarity score between 0 and 1.
+    """
+    return cv2.compareHist(u, v, cv2.HISTCMP_INTERSECT)
+
+
 def similarity_dominant_color(image_expected, image_observed, k=4, image_processing_size=None):
     """
     Compare descriptor vectors based on a similarity hellinguer.
@@ -85,7 +127,7 @@ def similarity_dominant_color(image_expected, image_observed, k=4, image_process
     dominant_color_observed = cv2.cvtColor(np.uint8([[dominant_color_observed]]), cv2.COLOR_RGB2Lab)
     dominant_color_expected = np.float32(dominant_color_expected)
     dominant_color_observed = np.float32(dominant_color_observed)
-    dominant_color_expected  *= 1/255;
-    dominant_color_observed *= 1/255;
+    dominant_color_expected *= 1 / 255;
+    dominant_color_observed *= 1 / 255;
 
-    return 1 - np.linalg.norm(dominant_color_expected-dominant_color_observed)
+    return 1 - np.linalg.norm(dominant_color_expected - dominant_color_observed)
