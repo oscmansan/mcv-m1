@@ -170,6 +170,29 @@ def dominant_colors_rgb(image, k=5):
     return clusters.ravel().astype(np.float32)
 
 
+def hist_YCrCb(image):
+    """
+    Extract descriptors of an image using its histogram in the YCbCr space.
+
+    Args:
+        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
+
+    Returns:
+        ndarray: 1D array of type np.float32 containing image descriptors, which correspond to the concatenation
+        of the three channel histograms (Y, Cr and Cb).
+
+    """
+    bins = 256
+
+    imageYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+    histY = cv2.calcHist([imageYCrCb], [0], None, [bins], [0, 256])
+    histCr = cv2.calcHist([imageYCrCb], [1], None, [bins], [0, 256])
+    histCb = cv2.calcHist([imageYCrCb], [2], None, [bins], [0, 256])
+    hist = np.vstack((cv2.normalize(histY, histY), cv2.normalize(histCr, histCr), cv2.normalize(histCb, histCb)))
+
+    return hist
+
+
 if __name__ == '__main__':
     import glob, imageio
 
