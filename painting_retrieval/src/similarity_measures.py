@@ -1,3 +1,7 @@
+from __future__ import division
+import numpy as np
+
+
 def similarity(u, v):
     """
     Compare descriptor vectors based on a similarity measure.
@@ -11,3 +15,7 @@ def similarity(u, v):
     """
 
     pass
+
+
+def euclidean_distance(u, v):
+    return np.sum((u - v) ** 2) ** 0.5
