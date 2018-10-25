@@ -20,10 +20,6 @@ def similarity(u, v):
     pass
 
 
-def euclidean_distance(u, v):
-    return np.sum((u - v) ** 2) ** 0.5
-
-
 def similarity_correlation(u, v):
     """
     Compare histograms based on a similarity correlation.
@@ -98,6 +94,7 @@ def similarity_intersect(u, v):
 
     return cv2.compareHist(u, v, cv2.HISTCMP_INTERSECT)
 
+
 def euclidean_similarity(u, v):
     """
     Compare descriptor vectors based on the euclidian distance between two vectors.
@@ -115,7 +112,7 @@ def euclidean_similarity(u, v):
     return sim
 
 
-def L1_distance(u, v):
+def l1_distance(u, v):
     """
     Compare descriptor vectors based on L1 distance.
 
@@ -162,5 +159,5 @@ if __name__ == '__main__':
     u = [1, 2, 3, 4]
     v = [4, 3, 2, 1]
     print(euclidean_similarity(u,v))
-    print(L1_distance(u, v))
+    print(l1_distance(u, v))
     print(cosine_similarity(u, v))

@@ -170,7 +170,7 @@ def dominant_colors_rgb(image, k=5):
     return clusters.ravel().astype(np.float32)
 
 
-def hist_YCrCb(image):
+def ycrcb_histogram(image):
     """
     Extract descriptors of an image using its histogram in the YCbCr space.
 
@@ -182,6 +182,7 @@ def hist_YCrCb(image):
         of the three channel histograms (Y, Cr and Cb).
 
     """
+
     bins = 256
 
     imageYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
