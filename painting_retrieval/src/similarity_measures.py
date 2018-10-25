@@ -1,7 +1,9 @@
-import cv2
+from __future__ import division
+from collections import Counter
+
 import numpy as np
 from sklearn.cluster import KMeans
-from collections import Counter
+import cv2
 
 
 def similarity(u, v):
@@ -15,7 +17,12 @@ def similarity(u, v):
     Returns:
         float: similarity score between 0 and 1.
     """
+
     pass
+
+
+def euclidean_distance(u, v):
+    return np.sum((u - v) ** 2) ** 0.5
 
 
 def similarity_correlation(u, v):
