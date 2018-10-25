@@ -2,6 +2,7 @@ from __future__ import division
 
 import numpy as np
 from scipy.fftpack import dct
+from sklearn.cluster import KMeans
 import cv2
 
 
@@ -20,19 +21,6 @@ def descriptor(image):
     pass
 
 
-def rgb_histogram(image):
-    h, w, c = image.shape
-
-    descriptors = []
-    for i in range(c):
-        hist = np.histogram(image[:, :, i], bins=256, range=(0, 255))[0]
-        hist = hist / (h * w)  # normalize
-        descriptors.append(hist)
-    descriptors = np.concatenate(descriptors).astype(np.float32)
-
-    return descriptors
-
-
 def block_descriptor(image, descriptor_fn, num_blocks):
     h, w = image.shape[:2]
     block_h = int(np.ceil(h / num_blocks))
@@ -41,7 +29,7 @@ def block_descriptor(image, descriptor_fn, num_blocks):
     descriptors = []
     for i in range(0, h, block_h):
         for j in range(0, w, block_w):
-            block = image[i:i+block_h, j:j+block_w]
+            block = image[i:i + block_h, j:j + block_w]
             descriptors.append(descriptor_fn(block))
     descriptors = np.concatenate(descriptors).astype(np.float32)
 
@@ -50,59 +38,42 @@ def block_descriptor(image, descriptor_fn, num_blocks):
 
 def pyramid_descriptor(image, descriptor_fn, max_level):
     descriptors = []
-    for level in range(max_level+1):
-        num_blocks = 2**level
+    for level in range(max_level + 1):
+        num_blocks = 2 ** level
         descriptors.append(block_descriptor(image, descriptor_fn, num_blocks))
     descriptors = np.concatenate(descriptors).astype(np.float32)
 
     return descriptors
 
 
-def descriptor_hsv(image):
-    """
-    Extract descriptors of an image in HSV color space.
+def rgb_histogram(image):
+    h, w, c = image.shape
 
-    Args:
-        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
+    descriptors = []
+    for i in range(c):
+        hist = np.histogram(image[:, :, i], bins=256, range=(0, 255))[0]
+        hist = hist / (h * w)  # normalize
+        descriptors.extend(hist)
 
-    Returns:
-        ndarray: 1D array of type np.float32 containing image descriptors.
-
-    """
-
-    img_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    hue_hist = cv2.calcHist([img_hsv], [0], None, [256], [0, 256])
-    saturation_hist = cv2.calcHist([img_hsv], [1], None, [256], [0, 256])
-    value_hist = cv2.calcHist([img_hsv], [2], None, [256], [0, 256])
-
-    acum_hist = (hue_hist + saturation_hist + value_hist) / 3
-
-    return np.array(acum_hist, dtype=np.float32).ravel()
+    return np.array(descriptors, dtype=np.float32)
 
 
-def descriptor_rgb(image):
-    """
-    Extract descriptors of an image in RGB color space.
+def hsv_histogram(image):
+    h, w, c = image.shape
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
-    Args:
-        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
+    sizes = [180, 256, 256]
+    ranges = [(0, 180), (0, 256), (0, 256)]
+    descriptors = []
+    for i in range(c):
+        hist = cv2.calcHist([hsv], [i], None, [sizes[i]], ranges[i]).ravel()
+        hist = hist / (h * w)  # normalize
+        descriptors.extend(hist)
 
-    Returns:
-        ndarray: 1D array of type np.float32 containing image descriptors.
-
-    """
-
-    r_hist = cv2.calcHist([image], [0], None, [256], [0, 256])
-    g_hist = cv2.calcHist([image], [1], None, [256], [0, 256])
-    b_hist = cv2.calcHist([image], [2], None, [256], [0, 256])
-
-    acum_hist = (r_hist + g_hist + b_hist) / 3
-
-    return np.array(acum_hist, dtype=np.float32).ravel()
+    return np.array(descriptors, dtype=np.float32)
 
 
-def descriptor_Lab(image):
+def lab_histogram(image):
     """
     Extract descriptors of an image using the Lab color space.
 
@@ -110,19 +81,19 @@ def descriptor_Lab(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        histogram (ndarray): 1D array of type np.float32 containing the concatenated histograms for
-                            L, a, b channels in this order.
+        histogram (ndarray): 1D array of type np.float32 containing the concatenated
+            histograms for L, a, b channels in this order.
 
     """
 
     # Convert image from RGB color space to Lab
-    image_Lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+    image_lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     # Select the number of bins
     bins = 256
     features = []
     # Compute histogram for every channel
     for i in range(3):
-        hist = cv2.calcHist([image_Lab], [i], None, [bins], [0, 255])
+        hist = cv2.calcHist([image_lab], [i], None, [bins], [0, 255])
         cv2.normalize(hist, hist)
         hist = hist.flatten()
         features.extend(hist)
@@ -130,19 +101,21 @@ def descriptor_Lab(image):
     return np.array(features, dtype=np.float32)
 
 
-def descriptor_CLD(image):
+def cld(image):
     """
     Extract descriptors of an image using the Color Layout Descriptor (CLD).
-    The method is explained in 'Color Based Image Classification and Description' (Sergi Laencina - MS Thesis).
+    The method is explained in 'Color Based Image Classification and Description'
+    (Sergi Laencina - MS Thesis).
 
     Args:
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        DCT main coefficients (ndarray): 1D array of type np.float32 containing the concatenated histograms for
-                            L, a, b channels in this order.
+        DCT main coefficients (ndarray): 1D array of type np.float32 containing
+            the concatenated histograms for L, a, b channels in this order.
 
     """
+
     # Convert image from RGB color space to YCbCr
     # Save size of original image
     N = image.shape[0]
@@ -185,3 +158,22 @@ def descriptor_CLD(image):
                 DCT_CR[4, 0]]
 
     return np.array(features, dtype=np.float32)
+
+
+def dominant_colors_rgb(image, k=5):
+    pixels = image.reshape((-1, 3))
+
+    clt = KMeans(n_clusters=k)
+    clt.fit(pixels)
+    clusters = clt.cluster_centers_
+
+    return clusters.ravel().astype(np.float32)
+
+
+if __name__ == '__main__':
+    import glob, imageio
+
+    image_file = np.random.choice(glob.glob('../data/museum_set_random/*.jpg'))
+    image = imageio.imread(image_file)
+    descriptors = hsv_histogram(image)
+    print(descriptors.dtype, descriptors.shape)
