@@ -39,7 +39,7 @@ def main():
                 for image_file, dist in result:
                     predicted_ids.append(_filename_to_id(image_file))
                 actual.append(query_retrieval)
-                predicted.extend([predicted_ids])
+                predicted.append(predicted_ids)
 
             print('Result for ', method, " and ", metric, " :", mapk(actual, predicted))
 
