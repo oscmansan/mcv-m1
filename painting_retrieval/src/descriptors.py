@@ -47,23 +47,6 @@ def pyramid_descriptor(image, descriptor_fn, max_level):
 
     return descriptors
 
-def gabor_descriptor(image):
-    kernels = []
-    for theta in range(4):
-        theta = theta / 4. * np.pi
-        for sigma in (1, 3):
-            for frequency in (0.05, 0.25):
-                kernel = np.real(gabor_kernel(frequency, theta=theta, sigma_x=sigma, sigma_y=sigma))
-                kernels.append(kernel)
-
-    shrink = (slice(0, None, 3), slice(0, None, 3))
-    feats = np.zeros((len(kernels), 2), dtype=np.double)
-    for k, kernel in enumerate(kernels):
-        filtered = ndi.convolve(np.float32(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY))[shrink], kernel, mode='wrap')
-        feats[k, 0] = filtered.mean()
-        feats[k, 1] = filtered.var()
-
-    return feats.ravel()
 
 def rgb_histogram(image):
     h, w, c = image.shape
@@ -244,6 +227,25 @@ def glcm_texture_features(image):
 
     text_features = [contrast, dissimilarity, homogeneity, ASM, energy, correlation]
     return np.array(text_features, dtype=np.float32)
+
+
+def gabor_descriptor(image):
+    kernels = []
+    for theta in range(4):
+        theta = theta / 4. * np.pi
+        for sigma in (1, 3):
+            for frequency in (0.05, 0.25):
+                kernel = np.real(gabor_kernel(frequency, theta=theta, sigma_x=sigma, sigma_y=sigma))
+                kernels.append(kernel)
+
+    shrink = (slice(0, None, 3), slice(0, None, 3))
+    feats = np.zeros((len(kernels), 2), dtype=np.double)
+    for k, kernel in enumerate(kernels):
+        filtered = ndi.convolve(np.float32(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY))[shrink], kernel, mode='wrap')
+        feats[k, 0] = filtered.mean()
+        feats[k, 1] = filtered.var()
+
+    return feats.ravel()
 
 
 def extract_descriptors(image, method):
