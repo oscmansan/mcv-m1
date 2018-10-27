@@ -165,7 +165,7 @@ def cosine_distance(u, v):
 
 
 def compute_distance(u, v, metric):
-    switcher = {
+    func = {
         'euclidean_distance': euclidean_distance,
         'l1_distance': l1_distance,
         'cosine_distance': cosine_distance,
@@ -176,8 +176,7 @@ def compute_distance(u, v, metric):
         'bhattacharya_distance': bhattacharya_distance,
         'kl_divergence': kl_divergence
     }
-    func = switcher.get(metric, lambda: ValueError("Invalid method"))
-    return func(u, v)
+    return func[metric](u, v)
 
 
 if __name__ == '__main__':

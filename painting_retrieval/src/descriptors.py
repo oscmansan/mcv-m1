@@ -195,19 +195,18 @@ def dominant_colors_rgb(image, k=5):
 
 
 def extract_descriptors(image, method):
-    switcher = {
+    func = {
         'rgb_histogram': rgb_histogram,
         'hsv_histogram': hsv_histogram,
         'lab_histogram': lab_histogram,
         'ycrcb_histogram': ycrcb_histogram,
         'cld': cld,
-        'pyramid_rgb_histogram': lambda image: pyramid_descriptor(image, rgb_histogram, 2),
-        'pyramid_hsv_histogram': lambda image: pyramid_descriptor(image, hsv_histogram, 2),
-        'pyramid_lab_histogram': lambda image: pyramid_descriptor(image, lab_histogram, 2),
-        'pyramid_ycrcb_histogram': lambda image: pyramid_descriptor(image, ycrcb_histogram, 2)
+        'rgb_histogram_pyramid': lambda image: pyramid_descriptor(image, rgb_histogram, 2),
+        'hsv_histogram_pyramid': lambda image: pyramid_descriptor(image, hsv_histogram, 2),
+        'lab_histogram_pyramid': lambda image: pyramid_descriptor(image, lab_histogram, 2),
+        'ycrcb_histogram_pyramid': lambda image: pyramid_descriptor(image, ycrcb_histogram, 2)
     }
-    func = switcher.get(method, lambda: ValueError("Invalid method"))
-    return func(image)
+    return func[method](image)
 
 
 if __name__ == '__main__':
