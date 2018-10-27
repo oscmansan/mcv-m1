@@ -5,7 +5,8 @@ from scipy.fftpack import dct
 from sklearn.cluster import KMeans
 from skimage.feature import greycomatrix, greycoprops
 import cv2
-
+from skimage.filters import gabor_kernel
+from scipy import ndimage as ndi
 
 def _descriptor(image):
     """
@@ -46,6 +47,23 @@ def pyramid_descriptor(image, descriptor_fn, max_level):
 
     return descriptors
 
+def gabor_descriptor(image):
+    kernels = []
+    for theta in range(4):
+        theta = theta / 4. * np.pi
+        for sigma in (1, 3):
+            for frequency in (0.05, 0.25):
+                kernel = np.real(gabor_kernel(frequency, theta=theta, sigma_x=sigma, sigma_y=sigma))
+                kernels.append(kernel)
+
+    shrink = (slice(0, None, 3), slice(0, None, 3))
+    feats = np.zeros((len(kernels), 2), dtype=np.double)
+    for k, kernel in enumerate(kernels):
+        filtered = ndi.convolve(np.float32(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY))[shrink], kernel, mode='wrap')
+        feats[k, 0] = filtered.mean()
+        feats[k, 1] = filtered.var()
+
+    return feats.ravel()
 
 def rgb_histogram(image):
     h, w, c = image.shape
@@ -235,6 +253,7 @@ def extract_descriptors(image, method):
         'lab_histogram': lab_histogram,
         'ycrcb_histogram': ycrcb_histogram,
         'cld': cld,
+        'gabor':gabor_descriptor,
         'rgb_histogram_pyramid': lambda image: pyramid_descriptor(image, rgb_histogram, 2),
         'hsv_histogram_pyramid': lambda image: pyramid_descriptor(image, hsv_histogram, 2),
         'lab_histogram_pyramid': lambda image: pyramid_descriptor(image, lab_histogram, 2),
@@ -248,5 +267,5 @@ if __name__ == '__main__':
 
     image_file = np.random.choice(glob.glob('../data/museum_set_random/*.jpg'))
     image = imageio.imread(image_file)
-    descriptors = hsv_histogram(image)
+    descriptors = gabor_descriptor(image)
     print(descriptors.dtype, descriptors.shape)
