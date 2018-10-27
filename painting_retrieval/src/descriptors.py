@@ -3,6 +3,7 @@ from __future__ import division
 import numpy as np
 from scipy.fftpack import dct
 from sklearn.cluster import KMeans
+from skimage.feature import greycomatrix, greycoprops
 import cv2
 
 
@@ -192,6 +193,39 @@ def dominant_colors_rgb(image, k=5):
     clusters = clt.cluster_centers_
 
     return clusters.ravel().astype(np.float32)
+
+
+def glcm_texture_features(image):
+    """
+    Extract texture descriptors of an image by extracting properites from
+     its gray-level co-occurrence matrix in 4 different directions (vertical, horizontal, left and right diagonals).
+
+    Args:
+        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
+
+    Returns:
+        ndarray: 1D array of type np.float32 containing image descriptors, which correspond to the concatenation
+        of the three channel histograms (Y, Cr and Cb).
+
+    """
+    # Convert image from RGB to Grayscale
+    imageGray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    # Compute grey-level co-ocurrence matrix
+    glcm = greycomatrix(imageGray, distances=[1],
+                        angles=[0, np.pi/8, np.pi/4, 3*np.pi/8],
+                        levels=256, symmetric=True, normed=True)
+
+    # Calculate texture properties of GLCM
+    contrast = greycoprops(glcm, 'contrast').mean(axis =1)
+    dissimilarity = greycoprops(glcm, 'dissimilarity').mean(axis =1)
+    homogeneity = greycoprops(glcm, 'homogeneity').mean(axis =1)
+    ASM = greycoprops(glcm, 'ASM').mean(axis =1)
+    energy = greycoprops(glcm, 'energy').mean(axis =1)
+    correlation = greycoprops(glcm, 'correlation').mean(axis =1)
+
+    text_features = [contrast, dissimilarity, homogeneity, ASM, energy, correlation]
+    return np.array(text_features, dtype=np.float32)
 
 
 def extract_descriptors(image, method):
