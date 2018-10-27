@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 import cv2
 
 
-def descriptor(image):
+def _descriptor(image):
     """
     Extract descriptors of an image.
 
@@ -101,6 +101,30 @@ def lab_histogram(image):
     return np.array(features, dtype=np.float32)
 
 
+def ycrcb_histogram(image):
+    """
+    Extract descriptors of an image using its histogram in the YCbCr space.
+
+    Args:
+        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
+
+    Returns:
+        ndarray: 1D array of type np.float32 containing image descriptors, which correspond to the concatenation
+        of the three channel histograms (Y, Cr and Cb).
+
+    """
+
+    bins = 256
+
+    imageYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+    histY = cv2.calcHist([imageYCrCb], [0], None, [bins], [0, 256])
+    histCr = cv2.calcHist([imageYCrCb], [1], None, [bins], [0, 256])
+    histCb = cv2.calcHist([imageYCrCb], [2], None, [bins], [0, 256])
+    hist = np.vstack((cv2.normalize(histY, histY), cv2.normalize(histCr, histCr), cv2.normalize(histCb, histCb)))
+
+    return hist
+
+
 def cld(image):
     """
     Extract descriptors of an image using the Color Layout Descriptor (CLD).
@@ -170,28 +194,20 @@ def dominant_colors_rgb(image, k=5):
     return clusters.ravel().astype(np.float32)
 
 
-def ycrcb_histogram(image):
-    """
-    Extract descriptors of an image using its histogram in the YCbCr space.
-
-    Args:
-        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
-
-    Returns:
-        ndarray: 1D array of type np.float32 containing image descriptors, which correspond to the concatenation
-        of the three channel histograms (Y, Cr and Cb).
-
-    """
-
-    bins = 256
-
-    imageYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
-    histY = cv2.calcHist([imageYCrCb], [0], None, [bins], [0, 256])
-    histCr = cv2.calcHist([imageYCrCb], [1], None, [bins], [0, 256])
-    histCb = cv2.calcHist([imageYCrCb], [2], None, [bins], [0, 256])
-    hist = np.vstack((cv2.normalize(histY, histY), cv2.normalize(histCr, histCr), cv2.normalize(histCb, histCb)))
-
-    return hist
+def extract_descriptors(image, method):
+    switcher = {
+        'rgb_histogram': rgb_histogram,
+        'hsv_histogram': hsv_histogram,
+        'lab_histogram': lab_histogram,
+        'ycrcb_histogram': ycrcb_histogram,
+        'cld': cld,
+        'pyramid_rgb_histogram': lambda image: pyramid_descriptor(image, rgb_histogram, 2),
+        'pyramid_hsv_histogram': lambda image: pyramid_descriptor(image, hsv_histogram, 2),
+        'pyramid_lab_histogram': lambda image: pyramid_descriptor(image, lab_histogram, 2),
+        'pyramid_ycrcb_histogram': lambda image: pyramid_descriptor(image, ycrcb_histogram, 2)
+    }
+    func = switcher.get(method, lambda: ValueError("Invalid method"))
+    return func(image)
 
 
 if __name__ == '__main__':
