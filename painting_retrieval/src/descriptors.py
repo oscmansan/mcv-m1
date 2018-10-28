@@ -17,7 +17,7 @@ def _descriptor(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        ndarray: 1D array of type np.float32 containing image descriptors.
+        ndarray: list of 1D arrays of type np.float32 containing image descriptors.
 
     """
 
@@ -34,7 +34,6 @@ def block_descriptor(image, descriptor_fn, num_blocks):
         for j in range(0, w, block_w):
             block = image[i:i + block_h, j:j + block_w]
             descriptors.extend(descriptor_fn(block))
-    #descriptors = np.concatenate(descriptors).astype(np.float32)
 
     return descriptors
 
@@ -44,7 +43,6 @@ def pyramid_descriptor(image, descriptor_fn, max_level):
     for level in range(max_level + 1):
         num_blocks = 2 ** level
         descriptors.extend(block_descriptor(image, descriptor_fn, num_blocks))
-    #descriptors = np.concatenate(descriptors).astype(np.float32)
 
     return descriptors
 
@@ -84,8 +82,8 @@ def lab_histogram(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        histogram (ndarray): list of 1D arrays of type np.float32 containing the
-            histograms for L, a, b channels in this order.
+        list: list of 1D arrays of type np.float32 containing the histograms for
+            L, a, b channels in this order.
 
     """
 
@@ -93,15 +91,15 @@ def lab_histogram(image):
     image_lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     # Select the number of bins
     bins = 256
-    features = []
+    descriptors = []
     # Compute histogram for every channel
     for i in range(3):
-        hist = cv2.calcHist([image_lab], [i], None, [bins], [0, 255])
+        hist = cv2.calcHist([image_lab], [i], None, [bins], [0, 256]).ravel()
         cv2.normalize(hist, hist)
-        hist = hist.flatten()
-        features.append(np.array(hist, dtype=np.float32))
+        descriptors.append(np.array(hist, dtype=np.float32))
+
     # Retrieve the concatenation of channel histograms
-    return features
+    return descriptors
 
 
 def ycrcb_histogram(image):
@@ -112,21 +110,20 @@ def ycrcb_histogram(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        ndarray: list of 1D arrays of type np.float32 containing image descriptors, which correspond to the
-        three channel histograms (Y, Cr and Cb).
+        list: list of 1D arrays of type np.float32 containing image descriptors,
+            which correspond to the three channel histograms (Y, Cr and Cb).
 
     """
 
     bins = 256
-    features = []
+    descriptors = []
     imageYCrCb = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
     for i in range(3):
         hist = cv2.calcHist([imageYCrCb], [i], None, [bins], [0, 256]).ravel()
-        features.append(np.array(cv2.normalize(hist, hist), dtype=np.float32))
+        cv2.normalize(hist, hist)
+        descriptors.append(np.array(hist, dtype=np.float32))
 
-    #hist = np.concatenate((cv2.normalize(histY, histY), cv2.normalize(histCr, histCr), cv2.normalize(histCb, histCb)))
-
-    return features
+    return descriptors
 
 
 def cld(image):
@@ -139,8 +136,7 @@ def cld(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        DCT main coefficients (ndarray): list with a 1D array of type np.float32 containing
-            the DCT coefficients.
+        ndarray: list with a 1D array of type np.float32 containing the DCT coefficients.
 
     """
 
@@ -195,7 +191,7 @@ def dominant_colors_rgb(image, k=5):
     clt.fit(pixels)
     clusters = clt.cluster_centers_
 
-    return clusters.ravel().astype(np.float32)
+    return [clusters.ravel().astype(np.float32)]
 
 
 def glcm_texture(image):
@@ -208,7 +204,7 @@ def glcm_texture(image):
 
     Returns:
         ndarray: 1D array of type np.float32 containing image descriptors, which correspond to the concatenation
-        of the three channel histograms (Y, Cr and Cb).
+            of the three channel histograms (Y, Cr and Cb).
 
     """
     # Convert image from RGB to Grayscale
@@ -274,4 +270,4 @@ if __name__ == '__main__':
     image = imageio.imread(image_file)
     descriptors = extract_descriptors(image, 'cld')
     print(len(descriptors), descriptors[0].dtype, descriptors[0].shape)
-    #print(descriptors)
+    print(descriptors)

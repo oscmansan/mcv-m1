@@ -34,17 +34,17 @@ def query_batch(query_files, image_files, color_method, metric, texture_method=N
             image_texture_descriptors = p.starmap(_read_and_extract, [(image_file, texture_method) for image_file in image_files])
 
         for q in range(len(query_files)):
-            distances = [0]*len(image_color_descriptors)
             query_embd = query_color_descriptors[q]
-            for chan in range(len(query_embd)):
-                distances_chan = p.starmap(compute_distance, [(query_embd[chan], image_embd[chan], metric)
-                                                              for image_embd in image_color_descriptors])
-                distances = [d + d_chann/len(query_embd) for (d, d_chann) in zip(distances, distances_chan)]
+
+            distances = []
+            for channel in range(len(query_embd)):
+                channel_distances = p.starmap(compute_distance, [(query_embd[channel], image_embd[channel], metric) for image_embd in image_color_descriptors])
+                distances.append(channel_distances)
+            distances = np.mean(distances, axis=0)
 
             if texture_method:
                 query_embd = query_texture_descriptors[q]
-                texture_distances = p.starmap(compute_distance, [(query_embd, image_embd, metric)
-                                                                           for image_embd in image_texture_descriptors])
+                texture_distances = p.starmap(compute_distance, [(query_embd, image_embd, metric) for image_embd in image_texture_descriptors])
                 distances = [0.6 * d + 0.4 * td for d, td in zip(distances, texture_distances)]
 
             inds = np.argsort(distances)[:k]
