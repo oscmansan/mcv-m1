@@ -91,7 +91,6 @@ def intersection(u, v):
     Returns:
         float: distance between histograms.
     """
-
     return cv2.compareHist(u, v, cv2.HISTCMP_INTERSECT)
 
 
@@ -122,7 +121,7 @@ def euclidean_distance(u, v):
         float: distance between descriptor vectors.
     """
 
-    return distance.euclidean(u/np.linalg.norm(u), v/np.linalg.norm(v))
+    return distance.euclidean(u, v)
 
 
 def l1_distance(u, v):
@@ -165,6 +164,8 @@ def cosine_distance(u, v):
 
 
 def compute_distance(u, v, metric):
+    u = u/np.linalg.norm(u)
+    v = u/np.linalg.norm(v)
     func = {
         'euclidean_distance': euclidean_distance,
         'l1_distance': l1_distance,
@@ -180,8 +181,12 @@ def compute_distance(u, v, metric):
 
 
 if __name__ == '__main__':
-    u = [1, 2, 3, 4]
-    v = [4, 3, 2, 1]
+    u = [0.2, 0.1, 0.3, 0.4]
+    v = [0.4, 0.3, 0.2, 0.1]
+    u = np.array(u, dtype=np.float32)
+    v = np.array(v, dtype=np.float32)
     print(euclidean_distance(u, v))
     print(l1_distance(u, v))
     print(cosine_distance(u, v))
+    print(intersection(u, v))
+    print(correlation(u, v))

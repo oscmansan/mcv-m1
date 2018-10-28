@@ -272,5 +272,5 @@ if __name__ == '__main__':
 
     image_file = np.random.choice(glob.glob('../data/museum_set_random/*.jpg'))
     image = imageio.imread(image_file)
-    descriptors = gabor_descriptor(image)
+    descriptors = extract_descriptors(image, 'hsv_histogram_pyramid')
     print(descriptors.dtype, descriptors.shape)
