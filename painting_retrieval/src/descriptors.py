@@ -33,8 +33,8 @@ def block_descriptor(image, descriptor_fn, num_blocks):
     for i in range(0, h, block_h):
         for j in range(0, w, block_w):
             block = image[i:i + block_h, j:j + block_w]
-            descriptors.append(descriptor_fn(block))
-    descriptors = np.concatenate(descriptors).astype(np.float32)
+            descriptors.extend(descriptor_fn(block))
+    #descriptors = np.concatenate(descriptors).astype(np.float32)
 
     return descriptors
 
@@ -43,8 +43,8 @@ def pyramid_descriptor(image, descriptor_fn, max_level):
     descriptors = []
     for level in range(max_level + 1):
         num_blocks = 2 ** level
-        descriptors.append(block_descriptor(image, descriptor_fn, num_blocks))
-    descriptors = np.concatenate(descriptors).astype(np.float32)
+        descriptors.extend(block_descriptor(image, descriptor_fn, num_blocks))
+    #descriptors = np.concatenate(descriptors).astype(np.float32)
 
     return descriptors
 
@@ -56,9 +56,9 @@ def rgb_histogram(image):
     for i in range(c):
         hist = np.histogram(image[:, :, i], bins=256, range=(0, 255))[0]
         hist = hist / (h * w)  # normalize
-        descriptors.extend(hist)
+        descriptors.append(np.array(hist, dtype=np.float32))
 
-    return np.array(descriptors, dtype=np.float32)
+    return descriptors
 
 
 def hsv_histogram(image):
@@ -71,9 +71,9 @@ def hsv_histogram(image):
     for i in range(c):
         hist = cv2.calcHist([hsv], [i], None, [sizes[i]], ranges[i]).ravel()
         hist = hist / (h * w)  # normalize
-        descriptors.extend(hist)
+        descriptors.append(np.array(hist, dtype=np.float32))
 
-    return np.array(descriptors, dtype=np.float32)
+    return descriptors
 
 
 def lab_histogram(image):
@@ -84,7 +84,7 @@ def lab_histogram(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        histogram (ndarray): 1D array of type np.float32 containing the concatenated
+        histogram (ndarray): list of 1D arrays of type np.float32 containing the
             histograms for L, a, b channels in this order.
 
     """
@@ -99,9 +99,9 @@ def lab_histogram(image):
         hist = cv2.calcHist([image_lab], [i], None, [bins], [0, 255])
         cv2.normalize(hist, hist)
         hist = hist.flatten()
-        features.extend(hist)
+        features.append(np.array(hist, dtype=np.float32))
     # Retrieve the concatenation of channel histograms
-    return np.array(features, dtype=np.float32)
+    return features
 
 
 def ycrcb_histogram(image):
@@ -112,20 +112,21 @@ def ycrcb_histogram(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        ndarray: 1D array of type np.float32 containing image descriptors, which correspond to the concatenation
-        of the three channel histograms (Y, Cr and Cb).
+        ndarray: list of 1D arrays of type np.float32 containing image descriptors, which correspond to the
+        three channel histograms (Y, Cr and Cb).
 
     """
 
     bins = 256
-
+    features = []
     imageYCrCb = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
-    histY = cv2.calcHist([imageYCrCb], [0], None, [bins], [0, 256]).ravel()
-    histCr = cv2.calcHist([imageYCrCb], [1], None, [bins], [0, 256]).ravel()
-    histCb = cv2.calcHist([imageYCrCb], [2], None, [bins], [0, 256]).ravel()
-    hist = np.concatenate((cv2.normalize(histY, histY), cv2.normalize(histCr, histCr), cv2.normalize(histCb, histCb)))
+    for i in range(3):
+        hist = cv2.calcHist([imageYCrCb], [i], None, [bins], [0, 256]).ravel()
+        features.append(np.array(cv2.normalize(hist, hist), dtype=np.float32))
 
-    return hist
+    #hist = np.concatenate((cv2.normalize(histY, histY), cv2.normalize(histCr, histCr), cv2.normalize(histCb, histCb)))
+
+    return features
 
 
 def cld(image):
@@ -138,8 +139,8 @@ def cld(image):
         image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
 
     Returns:
-        DCT main coefficients (ndarray): 1D array of type np.float32 containing
-            the concatenated histograms for L, a, b channels in this order.
+        DCT main coefficients (ndarray): list with a 1D array of type np.float32 containing
+            the DCT coefficients.
 
     """
 
@@ -184,7 +185,7 @@ def cld(image):
                 DCT_CR[1, 2], DCT_CR[2, 1], DCT_CR[0, 3], DCT_CR[0, 4], DCT_CR[1, 3], DCT_CR[2, 2], DCT_CR[3, 1],
                 DCT_CR[4, 0]]
 
-    return np.array(features, dtype=np.float32)
+    return [np.array(features, dtype=np.float32)]
 
 
 def dominant_colors_rgb(image, k=5):
@@ -271,5 +272,6 @@ if __name__ == '__main__':
 
     image_file = np.random.choice(glob.glob('../data/museum_set_random/*.jpg'))
     image = imageio.imread(image_file)
-    descriptors = extract_descriptors(image, 'hsv_histogram_pyramid')
-    print(descriptors.dtype, descriptors.shape)
+    descriptors = extract_descriptors(image, 'cld')
+    print(len(descriptors), descriptors[0].dtype, descriptors[0].shape)
+    #print(descriptors)
