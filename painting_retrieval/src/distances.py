@@ -32,7 +32,7 @@ def correlation(u, v):
         float: distance between histograms.
     """
 
-    return cv2.compareHist(u, v, cv2.HISTCMP_CORREL)
+    return 1 - cv2.compareHist(u, v, cv2.HISTCMP_CORREL)
 
 
 def chi_square(u, v):
@@ -91,7 +91,7 @@ def intersection(u, v):
     Returns:
         float: distance between histograms.
     """
-    return cv2.compareHist(u, v, cv2.HISTCMP_INTERSECT)
+    return 1 - cv2.compareHist(u, v, cv2.HISTCMP_INTERSECT)
 
 
 def kl_divergence(u, v):
@@ -164,8 +164,8 @@ def cosine_distance(u, v):
 
 
 def compute_distance(u, v, metric):
-    u = u/np.linalg.norm(u)
-    v = u/np.linalg.norm(v)
+    u = u / np.linalg.norm(u)
+    v = v / np.linalg.norm(v)
     func = {
         'euclidean_distance': euclidean_distance,
         'l1_distance': l1_distance,

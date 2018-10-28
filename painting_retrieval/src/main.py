@@ -13,6 +13,15 @@ def _filename_to_id(filename):
     return int(name.split('_')[1])
 
 
+def _save_results_in_pkl(method_number, results):
+    try:
+        os.mkdir('../results/method' + str(method_number))
+    except:
+        pass
+    with open('../results/method' + str(method_number) + "result.pkl", "wb") as fp:  # Pickling
+        pickle.dump(results, fp)
+
+
 def main():
     query_files = sorted(glob.glob('../data/query_devel_random/*.jpg'))
     image_files = sorted(glob.glob('../data/museum_set_random/*.jpg'))
@@ -65,9 +74,6 @@ def main():
                     print('Result for ', method, ', ', texture_method, ' and ', metric, ':', mapk(actual, predicted))
                 else:
                     print('Result for ', method, ' and ', metric, ':', mapk(actual, predicted))
-
-
-
 
 
 if __name__ == '__main__':

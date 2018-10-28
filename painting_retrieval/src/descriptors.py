@@ -119,7 +119,7 @@ def ycrcb_histogram(image):
 
     bins = 256
 
-    imageYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+    imageYCrCb = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
     histY = cv2.calcHist([imageYCrCb], [0], None, [bins], [0, 256]).ravel()
     histCr = cv2.calcHist([imageYCrCb], [1], None, [bins], [0, 256]).ravel()
     histCb = cv2.calcHist([imageYCrCb], [2], None, [bins], [0, 256]).ravel()
@@ -196,6 +196,7 @@ def dominant_colors_rgb(image, k=5):
 
     return clusters.ravel().astype(np.float32)
 
+
 def glcm_texture_features(image):
     """
     Extract texture descriptors of an image by extracting properites from
@@ -214,16 +215,16 @@ def glcm_texture_features(image):
 
     # Compute grey-level co-ocurrence matrix
     glcm = greycomatrix(imageGray, distances=[1],
-                        angles=[0, np.pi/8, np.pi/4, 3*np.pi/8],
+                        angles=[0, np.pi / 8, np.pi / 4, 3 * np.pi / 8],
                         levels=256, symmetric=True, normed=True)
 
     # Calculate texture properties of GLCM
-    contrast = greycoprops(glcm, 'contrast').mean(axis =1)
-    dissimilarity = greycoprops(glcm, 'dissimilarity').mean(axis =1)
-    homogeneity = greycoprops(glcm, 'homogeneity').mean(axis =1)
-    ASM = greycoprops(glcm, 'ASM').mean(axis =1)
-    energy = greycoprops(glcm, 'energy').mean(axis =1)
-    correlation = greycoprops(glcm, 'correlation').mean(axis =1)
+    contrast = greycoprops(glcm, 'contrast').mean(axis=1)
+    dissimilarity = greycoprops(glcm, 'dissimilarity').mean(axis=1)
+    homogeneity = greycoprops(glcm, 'homogeneity').mean(axis=1)
+    ASM = greycoprops(glcm, 'ASM').mean(axis=1)
+    energy = greycoprops(glcm, 'energy').mean(axis=1)
+    correlation = greycoprops(glcm, 'correlation').mean(axis=1)
 
     text_features = [contrast, dissimilarity, homogeneity, ASM, energy, correlation]
     return np.array(text_features, dtype=np.float32)
@@ -246,8 +247,6 @@ def gabor_descriptor(image):
         feats[k, 1] = filtered.var()
 
     return feats.ravel().astype(np.float32)
-
-
 
 
 def extract_descriptors(image, method):
