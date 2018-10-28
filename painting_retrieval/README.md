@@ -1,11 +1,20 @@
 # Painting Retrieval
+Introduction to Human and Computer Vision project example code and data for the Painting Retrieval project.
 
+### Execution instructions
+The entrypoint for this project is the file `src/main.py`. To execute it, run the following command:
 
-Introduction to Human and Computer Vision project example code and data for the Painting Retrieval project
+```bash
+python src/main.py [--queries_path QUERIES_PATH]
+                   [--images_path IMAGES_PATH]
+                   [--corresp_file CORRESP_FILE]
+                   [--results_path RESULTS_PATH]
+                   {eval,test}
+```
 
+It can be run in two modes: `eval` and `test`. The `eval` mode will run all the queries in `queries_path` against all the images in `images_path` and compare the results to the true correspondences stored in `corresp_file` in order to compute a MAP@K for every combination of descriptor method and distance metric. The `test` mode will run all the queries in `queries_path` against all the images in `images_path` and store the results in `results_path` in pickle format.
 
-
-DATA FILES:
+### Data files
 - query_corresp_simple_devel.pkl: True correspondences between query images and museum database images for the development simple_query. The correspondences are stored in a python dictionary where the key is the number in the name of the query image and the value is the number in the name of the dictionary image. This is necessary to evaluate your development results using the provided mapk() function.
 
   The correspondences:
@@ -24,4 +33,3 @@ DATA FILES:
   &gt;&gt;&gt; print (str)
 
   000076.jpg
-
