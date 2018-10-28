@@ -1,8 +1,8 @@
 from __future__ import division
 
+import cv2
 import numpy as np
 from scipy.spatial import distance
-import cv2
 
 
 def _distance(u, v):
@@ -136,7 +136,8 @@ def l1_distance(u, v):
         float: distance between descriptor vectors.
     """
 
-    return float(np.sum(abs(a - b) for a, b in zip(u, v)))
+    #return float(np.sum(abs(a - b) for a, b in zip(u, v)))
+    return distance.minkowski(u, v, 1)
 
 
 def cosine_similarity(u, v):

@@ -1,12 +1,12 @@
 from __future__ import division
 
-import numpy as np
-from scipy.fftpack import dct
-from sklearn.cluster import KMeans
-from skimage.filters import gabor_kernel
-from scipy import ndimage as ndi
-from skimage.feature import greycomatrix, greycoprops
 import cv2
+import numpy as np
+from scipy import ndimage as ndi
+from scipy.fftpack import dct
+from skimage.feature import greycomatrix, greycoprops
+from skimage.filters import gabor_kernel
+from sklearn.cluster import KMeans
 
 
 def _descriptor(image):
@@ -197,7 +197,7 @@ def dominant_colors_rgb(image, k=5):
     return clusters.ravel().astype(np.float32)
 
 
-def glcm_texture_features(image):
+def glcm_texture(image):
     """
     Extract texture descriptors of an image by extracting properites from
      its gray-level co-occurrence matrix in 4 different directions (vertical, horizontal, left and right diagonals).
@@ -227,10 +227,10 @@ def glcm_texture_features(image):
     correlation = greycoprops(glcm, 'correlation').mean(axis=1)
 
     text_features = [contrast, dissimilarity, homogeneity, ASM, energy, correlation]
-    return np.array(text_features, dtype=np.float32)
+    return np.array(text_features, dtype=np.float32).ravel()
 
 
-def gabor_descriptor(image):
+def gabor_texture(image):
     kernels = []
     for theta in range(4):
         theta = theta / 4. * np.pi
@@ -260,8 +260,8 @@ def extract_descriptors(image, method):
         'hsv_histogram_pyramid': lambda image: pyramid_descriptor(image, hsv_histogram, 2),
         'lab_histogram_pyramid': lambda image: pyramid_descriptor(image, lab_histogram, 2),
         'ycrcb_histogram_pyramid': lambda image: pyramid_descriptor(image, ycrcb_histogram, 2),
-        'gabor': gabor_descriptor,
-        'glcm': glcm_texture_features
+        'gabor': gabor_texture,
+        'glcm': glcm_texture
     }
     return func[method](image)
 
