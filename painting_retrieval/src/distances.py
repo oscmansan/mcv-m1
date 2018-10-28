@@ -137,7 +137,7 @@ def l1_distance(u, v):
         float: distance between descriptor vectors.
     """
 
-    return np.sum(abs(a - b) for a, b in zip(u, v))
+    return float(np.sum(abs(a - b) for a, b in zip(u, v)))
 
 
 def cosine_similarity(u, v):
