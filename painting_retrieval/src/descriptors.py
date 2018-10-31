@@ -245,6 +245,11 @@ def gabor_texture(image):
 
     return feats.ravel().astype(np.float32)
 
+def  sift_descriptors(image, keypoints):
+    gray= cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    sift = cv2.xfeatures2d.SIFT_create()
+    descriptors = sift.compute(gray, keypoints)
+    return descriptors
 
 def extract_global_descriptors(image, method):
     func = {
@@ -265,6 +270,7 @@ def extract_global_descriptors(image, method):
 
 def extract_local_descriptors(image, keypoints, method):
     func = {
-        'hog': lambda: None
+        'hog': lambda: None,
+        'sift': lambda: image, keypoints: sift_descriptors(image, keypoints)
     }
     return func[method](image, keypoints)
