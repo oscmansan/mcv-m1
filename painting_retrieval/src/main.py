@@ -33,15 +33,16 @@ def main(args):
         with open(args.corresp_file, 'rb') as f:
             query_gt = pickle.load(f)
 
-    keypoint_methods = ['dog']
-    descriptor_methods = ['hog']
+    keypoint_methods = ['sift']
+    descriptor_methods = ['sift']
+    match_methods = ['brute_force']
     distance_metrics = ['l2']
 
-    for keypoint_method, descriptor_method, distance_metric in product(keypoint_methods, descriptor_methods, distance_metrics):
-        print('({}, {}, {})'.format(keypoint_method, descriptor_method, distance_metric))
+    for keypoint_method, descriptor_method, match_method,  distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
+        print('({}, {}, {}, {})'.format(keypoint_method, descriptor_method, match_method, distance_metric))
 
         with Timer('query_batch'):
-            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, distance_metric)
+            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
 
         if args.mode == 'eval':
             actual = []
@@ -55,7 +56,9 @@ def main(args):
             predicted = []
             for query_file, result in zip(query_files, results):
                 predicted.append([_filename_to_id(image_file) for image_file, dist in result])
-            _save_results(predicted, args.results_path, method='{}_{}_{}'.format(keypoint_method, descriptor_method, distance_metric))
+            #save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
+            print('queries: {}'.format([_filename_to_id(q) for q in query_files]))
+            print('predicted: {}'.format(predicted))
 
         else:
             raise ValueError('Invalid mode.')

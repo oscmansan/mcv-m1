@@ -181,5 +181,28 @@ def compute_distance(u, v, metric):
     return func[metric](u, v)
 
 
-def match_descriptors(u, v, distance_metric):
-    pass
+def bf_match(u, v, distance_metric):
+    norm_type = {
+        'l1': cv2.NORM_L1,
+        'l2': cv2.NORM_L2,
+        'hamming': cv2.NORM_HAMMING,
+        'hamming2': cv2.NORM_HAMMING2
+    }[distance_metric]
+
+    bf = cv2.BFMatcher(normType=norm_type)
+    matches = bf.knnMatch(v, u, k=2)
+
+    good = []
+    for m, n in matches:
+        if m.distance < 0.75 * n.distance:
+            good.append(m)
+
+    distances = [match.distance for match in good]
+    return np.mean(distances)
+
+
+def match_descriptors(u, v, method, distance_metric):
+    func = {
+        'brute_force': bf_match
+    }
+    return func[method](u, v, distance_metric)
