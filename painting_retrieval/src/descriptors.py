@@ -271,6 +271,6 @@ def extract_global_descriptors(image, method):
 def extract_local_descriptors(image, keypoints, method):
     func = {
         'hog': lambda: None,
-        'sift': lambda: image, keypoints: sift_descriptors(image, keypoints)
+        'sift': sift_descriptors
     }
     return func[method](image, keypoints)
