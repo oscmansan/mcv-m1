@@ -31,32 +31,41 @@ def main(args):
 
     if args.mode == 'eval':
         with open(args.corresp_file, 'rb') as f:
-            query_gt = pickle.load(f)
+            query_gt_list = pickle.load(f)
+            query_gt = {}
+            for item in query_gt_list:
+                query_gt[item[0]] = item[1]
 
     keypoint_methods = ['sift']
     descriptor_methods = ['sift']
     match_methods = ['brute_force']
     distance_metrics = ['l2']
 
-    for keypoint_method, descriptor_method, match_method,  distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
+    for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods,
+                                                                                     descriptor_methods, match_methods,
+                                                                                     distance_metrics):
         print('({}, {}, {}, {})'.format(keypoint_method, descriptor_method, match_method, distance_metric))
 
         with Timer('query_batch'):
-            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
+            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method,
+                                  distance_metric)
 
         if args.mode == 'eval':
             actual = []
             predicted = []
             for query_file, result in zip(query_files, results):
-                actual.append([query_gt[_filename_to_id(query_file)]])
+                actual.append(query_gt[_filename_to_id(query_file)])
                 predicted.append([_filename_to_id(image_file) for image_file, dist in result])
-            print('MAP@K: {}'.format(mapk(actual, predicted)))
+            print('MAP@K: {}'.format(mapk(actual, predicted, 10)))
+            print('MAP@K: {}'.format(mapk(actual, predicted, 5)))
+            print('MAP@K: {}'.format(mapk(actual, predicted, 3)))
+            print('MAP@K: {}'.format(mapk(actual, predicted, 1)))
 
         elif args.mode == 'test':
             predicted = []
             for query_file, result in zip(query_files, results):
                 predicted.append([_filename_to_id(image_file) for image_file, dist in result])
-            #save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
+            # save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
             print('queries: {}'.format([_filename_to_id(q) for q in query_files]))
             print('predicted: {}'.format(predicted))
 
@@ -67,9 +76,9 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str, choices=['eval', 'test'])
-    parser.add_argument('--queries_path', type=str, default='../data/query_devel_random/*.jpg')
-    parser.add_argument('--images_path', type=str, default='../data/museum_set_random/*.jpg')
-    parser.add_argument('--corresp_file', type=str, default='../query_corresp_simple_devel.pkl')
+    parser.add_argument('--queries_path', type=str, default='../data/query_devel_W4/*.jpg')
+    parser.add_argument('--images_path', type=str, default='../data/BBDD_W4/*.jpg')
+    parser.add_argument('--corresp_file', type=str, default='../w4_query_devel.pkl')
     parser.add_argument('--results_path', type=str, default='../results')
     args = parser.parse_args()
     main(args)

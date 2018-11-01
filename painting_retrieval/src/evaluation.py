@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def apk(actual, predicted, k=10):
+def apk(actual, predicted, k):
     """
     Computes the average precision at k.
     This function computes the average prescision at k between two lists of
@@ -36,7 +36,7 @@ def apk(actual, predicted, k=10):
     return score / min(len(actual), k)
 
 
-def mapk(actual, predicted, k=10):
+def mapk(actual, predicted, k):
     """
     Computes the mean average precision at k.
     This function computes the mean average prescision at k between two lists
