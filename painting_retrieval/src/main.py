@@ -6,7 +6,6 @@ from itertools import product
 
 from retrieval import query_batch
 from evaluation import mapk
-from timer import Timer
 
 
 def _filename_to_id(filename):
@@ -39,10 +38,7 @@ def main(args):
     distance_metrics = ['l2']
 
     for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
-        print('({}, {}, {}, {})'.format(keypoint_method, descriptor_method, match_method, distance_metric))
-
-        with Timer('query_batch'):
-            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
+        results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
 
         if args.mode == 'eval':
             actual = []

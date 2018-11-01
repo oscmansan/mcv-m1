@@ -181,7 +181,7 @@ def compute_distance(u, v, metric):
     return func[metric](u, v)
 
 
-def bf_match(u, v, distance_metric):
+def bf_match(query_des, image_des, distance_metric):
     norm_type = {
         'l1': cv2.NORM_L1,
         'l2': cv2.NORM_L2,
@@ -190,7 +190,8 @@ def bf_match(u, v, distance_metric):
     }[distance_metric]
 
     bf = cv2.BFMatcher(normType=norm_type)
-    matches = bf.knnMatch(v, u, k=2)
+    # For each image descriptor, find best k matches among query descriptors
+    matches = bf.knnMatch(image_des, query_des, k=2)
 
     good = []
     for m, n in matches:
@@ -201,8 +202,8 @@ def bf_match(u, v, distance_metric):
     return np.mean(distances)
 
 
-def match_descriptors(u, v, method, distance_metric):
+def match_descriptors(query_des, image_des, method, distance_metric):
     func = {
         'brute_force': bf_match
     }
-    return func[method](u, v, distance_metric)
+    return func[method](query_des, image_des, distance_metric)
