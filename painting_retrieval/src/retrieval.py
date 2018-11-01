@@ -2,6 +2,7 @@ import multiprocessing.dummy as mp
 
 import numpy as np
 import imageio
+import cv2
 
 from keypoints import detect_keypoints
 from descriptors import extract_local_descriptors
@@ -10,8 +11,9 @@ from distances import match_descriptors
 
 def _read_and_extract(image_file, keypoint_method, descriptor_method):
     image = imageio.imread(image_file)
-    keypoints = detect_keypoints(image, keypoint_method)
-    descriptors = extract_local_descriptors(image, keypoints, descriptor_method)
+    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    keypoints = detect_keypoints(image_gray, keypoint_method)
+    descriptors = extract_local_descriptors(image_gray, keypoints, descriptor_method)
     return descriptors
 
 

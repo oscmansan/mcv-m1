@@ -43,15 +43,17 @@ def laplacian_of_gaussian(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        (ndarray): list of keypoints coordinates.
-        (ndarray): list of sizes -diameter- of keypoints
+        list (list of object keypoint): list of keypoints.
 
     """
 
     blobs_log = feature.blob_log(image, max_sigma=30, num_sigma=10, threshold=.1)
-    keypoints = np.array(blobs_log[:, [0, 1]], dtype=np.float32)
+    points2f = np.array(blobs_log[:, [0, 1]], dtype=np.float32)
     sizes = np.array(list(blobs_log[:, 2] * np.sqrt(2) * 2), dtype=np.float32)
-    return keypoints, sizes
+    keypoints = []
+    for i in range(len(points2f)):
+        keypoints.append(cv2.KeyPoint_convert([points2f[i]], sizes[i])[0])
+    return keypoints
 
 
 def difference_of_gaussian(image):
@@ -62,15 +64,17 @@ def difference_of_gaussian(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        (ndarray): list of keypoints coordinates.
-        (ndarray): list of sizes -diameter- of keypoints
+        list (list of object keypoint): list of keypoints.
 
     """
 
     blobs_dog = feature.blob_dog(image, max_sigma=30, threshold=.1)
-    keypoints = np.array(blobs_dog[:, [0, 1]], dtype=np.float32)
+    points2f = np.array(blobs_dog[:, [0, 1]], dtype=np.float32)
     sizes = np.array(list(blobs_dog[:, 2] * np.sqrt(2) * 2), dtype=np.float32)
-    return keypoints, sizes
+    keypoints = []
+    for i in range(len(points2f)):
+        keypoints.append(cv2.KeyPoint_convert([points2f[i]], sizes[i])[0])
+    return keypoints
 
 
 def determinant_of_hessian(image):
@@ -81,15 +85,17 @@ def determinant_of_hessian(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        (ndarray): list of keypoints coordinates.
-        (ndarray): list of sizes -diameter- of keypoints
+        list (list of object keypoint): list of keypoints.
 
     """
 
     blobs_doh = feature.blob_doh(image, max_sigma=30, threshold=.001)
-    keypoints = np.array(blobs_doh[:, [0, 1]], dtype=np.float32)
+    points2f = np.array(blobs_doh[:, [0, 1]], dtype=np.float32)
     sizes = np.array(list(blobs_doh[:, 2] * np.sqrt(2) * 2), dtype=np.float32)
-    return keypoints, sizes
+    keypoints = []
+    for i in range(len(points2f)):
+        keypoints.append(cv2.KeyPoint_convert([points2f[i]], sizes[i])[0])
+    return keypoints
 
 
 def detect_keypoints(image, method):
