@@ -1,6 +1,6 @@
-import cv2
-from skimage import feature
 import numpy as np
+from skimage import feature
+import cv2
 
 
 def _keypoints(image):
@@ -8,7 +8,7 @@ def _keypoints(image):
     Extract keypoints of an image.
 
     Args:
-        image (ndarray): (H x W x C) 3D array of type np.uint8 containing an image.
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
         list: list of keypoints.
@@ -18,7 +18,7 @@ def _keypoints(image):
     pass
 
 
-def sift(image):
+def sift_keypoints(image):
     """
     Extract keypoints of an image using Difference of Gaussians method.
 
@@ -26,7 +26,7 @@ def sift(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        list (list of object keypoint): list of keypoints.
+        (list of cv2.KeyPoint objects): list of keypoints.
 
     """
 
@@ -43,7 +43,7 @@ def laplacian_of_gaussian(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        list (list of object keypoint): list of keypoints.
+        (list of cv2.KeyPoint objects): list of keypoints.
 
     """
 
@@ -64,7 +64,7 @@ def difference_of_gaussian(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        list (list of object keypoint): list of keypoints.
+        (list of cv2.KeyPoint objects): list of keypoints.
 
     """
 
@@ -85,7 +85,7 @@ def determinant_of_hessian(image):
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
-        list (list of object keypoint): list of keypoints.
+        (list of cv2.KeyPoint objects): list of keypoints.
 
     """
 
@@ -103,6 +103,6 @@ def detect_keypoints(image, method):
         'dog': difference_of_gaussian,
         'log': laplacian_of_gaussian,
         'doh': determinant_of_hessian,
-        'sift': sift
+        'sift': sift_keypoints
     }
     return func[method](image)

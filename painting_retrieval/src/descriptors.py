@@ -263,7 +263,7 @@ def extract_global_descriptors(image, method):
     return func[method](image)
 
 
-def sift(image, keypoints):
+def sift_descriptors(image, keypoints):
     sift = cv2.xfeatures2d.SIFT_create()
     _, descriptors = sift.compute(image, keypoints)
     return descriptors
@@ -271,6 +271,6 @@ def sift(image, keypoints):
 
 def extract_local_descriptors(image, keypoints, method):
     func = {
-        'sift': sift
+        'sift': sift_descriptors
     }
     return func[method](image, keypoints)
