@@ -31,24 +31,18 @@ def main(args):
 
     if args.mode == 'eval':
         with open(args.corresp_file, 'rb') as f:
-            query_gt_list = pickle.load(f)
-            query_gt = {}
-            for item in query_gt_list:
-                query_gt[item[0]] = item[1]
+            query_gt = dict(pickle.load(f))
 
     keypoint_methods = ['sift']
     descriptor_methods = ['sift']
     match_methods = ['brute_force']
     distance_metrics = ['l2']
 
-    for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods,
-                                                                                     descriptor_methods, match_methods,
-                                                                                     distance_metrics):
+    for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
         print('({}, {}, {}, {})'.format(keypoint_method, descriptor_method, match_method, distance_metric))
 
         with Timer('query_batch'):
-            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method,
-                                  distance_metric)
+            results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
 
         if args.mode == 'eval':
             actual = []
@@ -56,10 +50,10 @@ def main(args):
             for query_file, result in zip(query_files, results):
                 actual.append(query_gt[_filename_to_id(query_file)])
                 predicted.append([_filename_to_id(image_file) for image_file, dist in result])
-            print('MAP@K: {}'.format(mapk(actual, predicted, 10)))
-            print('MAP@K: {}'.format(mapk(actual, predicted, 5)))
-            print('MAP@K: {}'.format(mapk(actual, predicted, 3)))
-            print('MAP@K: {}'.format(mapk(actual, predicted, 1)))
+            print('MAP@{}: {}'.format(mapk(actual, predicted, 10), 10))
+            print('MAP@{}: {}'.format(mapk(actual, predicted, 5), 5))
+            print('MAP@{}: {}'.format(mapk(actual, predicted, 3), 3))
+            print('MAP@{}: {}'.format(mapk(actual, predicted, 1), 1))
 
         elif args.mode == 'test':
             predicted = []
