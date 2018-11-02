@@ -7,6 +7,7 @@ from scipy.fftpack import dct
 from skimage.feature import greycomatrix, greycoprops
 from skimage.filters import gabor_kernel
 from sklearn.cluster import KMeans
+from skimage.feature import daisy
 
 
 def _descriptors(image):
@@ -269,8 +270,37 @@ def sift_descriptors(image, keypoints):
     return descriptors
 
 
+def root_sift(image, keypoints, eps=1e-7):
+    image_gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
+    descs = sift_descriptors(image_gray,keypoints)
+
+    if len(keypoints) == 0:
+        return ([], None)
+
+    descs /= (descs.sum(axis=1, keepdims=True) + eps)
+    descs = np.sqrt(descs)
+
+    return descs
+
+
+def orb(image, keypoints):
+    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    orb = cv2.ORB_create()
+    kp, des = orb.compute(image_gray, keypoints)
+    return des
+
+
+def daisy_descriptor(image,keypoints):
+    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    descs, descs_img = daisy(image_gray, step=180, radius=58, rings=2, histograms=6, orientations=8, visualize=True)
+    return descs
+
+
 def extract_local_descriptors(image, keypoints, method):
     func = {
-        'sift': sift_descriptors
+        'sift': sift_descriptors,
+        'root_sift': root_sift,
+        'daisy': daisy_descriptor,
+        'orb': orb
     }
     return func[method](image, keypoints)
