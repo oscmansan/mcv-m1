@@ -182,19 +182,21 @@ def compute_distance(u, v, metric):
     return func[metric](u, v)
 
 
-def _filter_matches(matches):
+def _filter_matches(matches, ratio=0.5):
     good = []
     for m, n in matches:
-        if m.distance < 0.7 * n.distance:
+        if m.distance < ratio * n.distance:
             good.append(m)
     return good
 
 
-def _compute_similarity_score(matches, thresh=48):
-    if len(matches) < thresh:
+def _compute_similarity_score(matches, matches_thresh=10, dist_thresh=130):
+    m = len(matches)
+    d = np.mean([match.distance for match in matches]) if m > 0 else np.inf
+    if m < matches_thresh or d > dist_thresh:
         return 0
     else:
-        return len(matches) / np.mean([match.distance for match in matches])
+        return m / d
 
 
 def bf_match(query_des, image_des, distance_metric):

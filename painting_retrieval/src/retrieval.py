@@ -11,15 +11,19 @@ from distances import match_descriptors
 from timer import Timer
 
 
-def _read_and_extract(image_file, keypoint_method, descriptor_method):
+NUM_KEYPOINTS_QUERY = 10000
+NUM_KEYPOINTS_IMAGE = 1000
+
+
+def _read_and_extract(image_file, keypoint_method, descriptor_method, nkeypoints):
     image = imageio.imread(image_file)
     image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    keypoints = detect_keypoints(image_gray, keypoint_method)
+    keypoints = detect_keypoints(image_gray, keypoint_method, nkeypoints)
     descriptors = extract_local_descriptors(image_gray, keypoints, descriptor_method)
     return descriptors
 
 
-def _load_or_compute(image_file, keypoint_method, descriptor_method):
+def _load_or_compute(image_file, keypoint_method, descriptor_method, nkeypoints):
     print(image_file, keypoint_method, descriptor_method)
 
     directory, filename = image_file.rsplit(os.sep, 2)[-2:]
@@ -31,16 +35,16 @@ def _load_or_compute(image_file, keypoint_method, descriptor_method):
         descriptors = np.load(file_path)
         return descriptors
     else:
-        descriptors = _read_and_extract(image_file, keypoint_method, descriptor_method)
+        descriptors = _read_and_extract(image_file, keypoint_method, descriptor_method, nkeypoints)
         if not os.path.exists(path): os.makedirs(path)
         np.save(file_path, descriptors)
         return descriptors
 
 
 def query(query_file, image_files, keypoint_method, descriptor_method, match_method, distance_metric, k=10):
-    query_embd = _load_or_compute(query_file, keypoint_method, descriptor_method)
+    query_embd = _load_or_compute(query_file, keypoint_method, descriptor_method, NUM_KEYPOINTS_QUERY)
     with mp.Pool(processes=8) as p:
-        image_descriptors = p.starmap(_load_or_compute, [(image_file, keypoint_method, descriptor_method) for image_file in image_files])
+        image_descriptors = p.starmap(_load_or_compute, [(image_file, keypoint_method, descriptor_method, NUM_KEYPOINTS_IMAGE) for image_file in image_files])
 
     scores = []
     for image_embd in image_descriptors:
@@ -56,8 +60,8 @@ def query_batch(query_files, image_files, keypoint_method, descriptor_method, ma
     results = []
     with Timer('extract descriptors'):
         with mp.Pool(processes=8) as p:
-            query_descriptors = p.starmap(_load_or_compute, [(query_file, keypoint_method, descriptor_method) for query_file in query_files])
-            image_descriptors = p.starmap(_load_or_compute, [(image_file, keypoint_method, descriptor_method) for image_file in image_files])
+            query_descriptors = p.starmap(_load_or_compute, [(query_file, keypoint_method, descriptor_method, NUM_KEYPOINTS_QUERY) for query_file in query_files])
+            image_descriptors = p.starmap(_load_or_compute, [(image_file, keypoint_method, descriptor_method, NUM_KEYPOINTS_IMAGE) for image_file in image_files])
 
     with Timer('match descriptors'):
         for i, (query_file, query_embd) in enumerate(zip(query_files, query_descriptors), 1):

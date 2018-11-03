@@ -45,20 +45,23 @@ def main(args):
             predicted = []
             for query_file, result in zip(query_files, results):
                 actual.append(query_gt[_filename_to_id(query_file)])
-                predicted.append([_filename_to_id(image_file) for image_file, dist in result])
-            print('MAP@{}: {}'.format(mapk(actual, predicted, 10), 10))
-            print('MAP@{}: {}'.format(mapk(actual, predicted, 5), 5))
-            print('MAP@{}: {}'.format(mapk(actual, predicted, 3), 3))
-            print('MAP@{}: {}'.format(mapk(actual, predicted, 1), 1))
+                if result[0][1] == 0:
+                    predicted.append([-1])
+                else:
+                    predicted.append([_filename_to_id(image_file) for image_file, dist in result])
+            print('MAP@{}: {}'.format(10, mapk(actual, predicted, 10)))
+            print('MAP@{}: {}'.format(5, mapk(actual, predicted, 5)))
+            print('MAP@{}: {}'.format(3, mapk(actual, predicted, 3)))
+            print('MAP@{}: {}'.format(1, mapk(actual, predicted, 1)))
 
         elif args.mode == 'test':
             predicted = []
             for query_file, result in zip(query_files, results):
                 #predicted.append([_filename_to_id(image_file) for image_file, dist in result])
                 predicted.append([(_filename_to_id(image_file), dist) for image_file, dist in result])
-            # save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
-            print('queries: {}'.format([_filename_to_id(q) for q in query_files]))
-            print('predicted: {}'.format(predicted))
+            #save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
+            for q, p in zip(query_files, predicted):
+                print('{}: {}'.format(_filename_to_id(q), p[:5]))
 
         else:
             raise ValueError('Invalid mode.')

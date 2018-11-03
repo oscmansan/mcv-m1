@@ -114,7 +114,7 @@ def harris_laplacian(image):
     return keypoints
 
 
-def sift_keypoints(image):
+def sift_keypoints(image, nkeypoints):
     """
     Extract keypoints of an image using Difference of Gaussians method.
 
@@ -126,7 +126,7 @@ def sift_keypoints(image):
 
     """
 
-    sift = cv2.xfeatures2d.SIFT_create()
+    sift = cv2.xfeatures2d.SIFT_create(nfeatures=nkeypoints)
     keypoints = sift.detect(image)
     return keypoints
 
@@ -149,7 +149,7 @@ def surf_keypoints(image):
     return keypoints
 
 
-def detect_keypoints(image, method):
+def detect_keypoints(image, method, nkeypoints=None):
     func = {
         'dog': difference_of_gaussian,
         'log': laplacian_of_gaussian,
@@ -159,4 +159,7 @@ def detect_keypoints(image, method):
         'sift': sift_keypoints,
         'surf': surf_keypoints
     }
-    return func[method](image)
+    if nkeypoints is not None:
+        return func[method](image, nkeypoints)
+    else:
+        return func[method](image)
