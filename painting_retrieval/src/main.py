@@ -54,7 +54,8 @@ def main(args):
         elif args.mode == 'test':
             predicted = []
             for query_file, result in zip(query_files, results):
-                predicted.append([_filename_to_id(image_file) for image_file, dist in result])
+                #predicted.append([_filename_to_id(image_file) for image_file, dist in result])
+                predicted.append([(_filename_to_id(image_file), dist) for image_file, dist in result])
             # save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
             print('queries: {}'.format([_filename_to_id(q) for q in query_files]))
             print('predicted: {}'.format(predicted))
