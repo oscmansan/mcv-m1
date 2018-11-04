@@ -25,22 +25,6 @@ def _keypoints(image):
     pass
 
 
-def orb_keypoints(image):
-    """
-    Extract keypoints of an image using Difference of Gaussians method.
-
-    Args:
-        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
-
-    Returns:
-        list (list of object keypoint): list of keypoints.
-
-    """
-    orb = cv2.ORB_create()
-    kp = orb.detect(image, None)
-    return kp
-
-
 def laplacian_of_gaussian(image):
     """
     Extract keypoints of an image using Laplacian of Gaussians method.
@@ -172,15 +156,32 @@ def surf_keypoints(image, mode):
     return keypoints
 
 
+def orb_keypoints(image):
+    """
+    Extract keypoints of an image using the ORB method.
+
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+
+    Returns:
+        list (list of object keypoint): list of keypoints.
+
+    """
+
+    orb = cv2.ORB_create()
+    keypoints = orb.detect(image)
+    return keypoints
+
+
 def detect_keypoints(image, method, mode=None):
     func = {
         'dog': difference_of_gaussian,
         'log': laplacian_of_gaussian,
         'doh': determinant_of_hessian,
-        'orb': orb_keypoints,
         'hl': harris_laplacian,
         'sift': sift_keypoints,
-        'surf': surf_keypoints
+        'surf': surf_keypoints,
+        'orb': orb_keypoints
     }
     if mode is not None:
         return func[method](image, mode)
