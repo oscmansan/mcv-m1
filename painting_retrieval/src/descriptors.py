@@ -296,7 +296,7 @@ def root_sift_descriptors(image, keypoints, eps=1e-7):
 
     """
 
-    descs = sift_descriptors(image,keypoints)
+    descs = sift_descriptors(image, keypoints)
     descs /= (descs.sum(axis=1, keepdims=True) + eps)
     descs = np.sqrt(descs)
 
@@ -322,7 +322,7 @@ def orb_descriptors(image, keypoints):
     return des
 
 
-def daisy_descriptors(image,keypoints):
+def daisy_descriptors(image, keypoints):
     """
     Extract descriptors from keypoints using the Daisy method.
 
@@ -335,7 +335,7 @@ def daisy_descriptors(image,keypoints):
 
     """
 
-        daisy = cv2.xfeatures2d.DAISY_create()
+    daisy = cv2.xfeatures2d.DAISY_create()
     _, descriptors = daisy.compute(image, keypoints)
 
     return descs
