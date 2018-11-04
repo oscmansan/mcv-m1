@@ -174,7 +174,6 @@ def orb_keypoints(image):
     return keypoints
 
 
-
 def harris_corner_detector(image, mode):
 
     """
