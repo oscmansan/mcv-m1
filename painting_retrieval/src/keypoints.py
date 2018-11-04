@@ -173,7 +173,8 @@ def orb_keypoints(image):
     keypoints = orb.detect(image)
     return keypoints
 
-def harris_corner_detector(image):
+
+def harris_corner_detector(image, mode):
     """
     Extract keypoints from image using Harris Corner Detector
     Args:
@@ -190,7 +191,7 @@ def harris_corner_detector(image):
     return [cv2.KeyPoint(corner[0], corner[1], 9) for corner in corners]
 
 
-def harris_corner_subpixel_accuracy(image):
+def harris_corner_subpixel_accuracy(image, mode):
     """
     Extract keypoints from image using Harris Corner Detector with subpixel accuracy
     Args:
@@ -200,10 +201,17 @@ def harris_corner_subpixel_accuracy(image):
         ndarray: list of 1D arrays of type np.float32 containing image descriptors.
     """
 
+    if mode == Mode.QUERY:
+        thresh = 0.15
+    elif mode == Mode.IMAGE:
+        thresh = 0.10
+    else:
+        thresh = 0.15
+
     # find Harris corners
     dst = cv2.cornerHarris(image, 4, -1, 0.04)
     dst = cv2.dilate(dst, None)
-    ret, dst = cv2.threshold(dst, 0.10 * dst.max(), 255, 0)
+    ret, dst = cv2.threshold(dst, thresh * dst.max(), 255, 0)
     dst = np.uint8(dst)
 
     # find centroids
@@ -214,8 +222,6 @@ def harris_corner_subpixel_accuracy(image):
     corners = cv2.cornerSubPix(image, np.float32(centroids), (2, 2), (-1, -1), criteria)
 
     return [cv2.KeyPoint(corner[0], corner[1], 4) for corner in corners]
-
-
 
 
 def detect_keypoints(image, method, mode=None):
@@ -234,9 +240,3 @@ def detect_keypoints(image, method, mode=None):
         return func[method](image, mode)
     else:
         return func[method](image)
-
-
-if __name__ == '__main__':
-    image = imageio.imread('../data/query_devel_random/ima_000008.jpg')
-    h = harris_corner_subpixel_accuracy(image)
-    print(h)
