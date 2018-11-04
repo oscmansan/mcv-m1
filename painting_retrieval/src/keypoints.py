@@ -3,7 +3,6 @@ from enum import Enum
 import numpy as np
 from skimage import feature
 import cv2
-import imageio
 
 
 class Mode(Enum):
@@ -99,6 +98,7 @@ def harris_laplacian(image):
 
     Returns:
         (list of cv2.KeyPoint objects): list of keypoints.
+
     """
 
     hl = cv2.xfeatures2d.HarrisLaplaceFeatureDetector_create()
@@ -174,31 +174,35 @@ def orb_keypoints(image):
     return keypoints
 
 
+
 def harris_corner_detector(image, mode):
+
     """
-    Extract keypoints from image using Harris Corner Detector
+    Extract keypoints from image using Harris Corner Detector.
+
     Args:
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
         ndarray: list of 1D arrays of type np.float32 containing image descriptors.
+
     """
 
     dst = cv2.cornerHarris(image, 4, -1, 0.04)
-
     corners = np.argwhere(dst > dst.max() * 0.10)
-
     return [cv2.KeyPoint(corner[0], corner[1], 9) for corner in corners]
 
 
 def harris_corner_subpixel_accuracy(image, mode):
     """
-    Extract keypoints from image using Harris Corner Detector with subpixel accuracy
+    Extract keypoints from image using Harris Corner Detector with subpixel accuracy.
+
     Args:
         image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
 
     Returns:
         ndarray: list of 1D arrays of type np.float32 containing image descriptors.
+
     """
 
     if mode == Mode.QUERY:

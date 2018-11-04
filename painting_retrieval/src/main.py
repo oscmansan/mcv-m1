@@ -25,8 +25,8 @@ def _save_results(results, dst_path, method):
 
 
 def main(args):
-    query_files = sorted(glob.glob(args.queries_path))
-    image_files = sorted(glob.glob(args.images_path))
+    query_files = sorted(glob.glob(os.path.join(args.queries_path, '*.jpg')))
+    image_files = sorted(glob.glob(os.path.join(args.images_path, '*.jpg')))
 
     if args.mode == 'eval':
         with open(args.corresp_file, 'rb') as f:
@@ -35,7 +35,7 @@ def main(args):
     keypoint_methods = ['sift']
     descriptor_methods = ['sift']
     match_methods = ['brute_force']
-    distance_metrics = ['l2']
+    distance_metrics = ['l1']
 
     for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
         results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
@@ -59,8 +59,12 @@ def main(args):
         elif args.mode == 'test':
             predicted = []
             for query_file, result in zip(query_files, results):
-                predicted.append([_filename_to_id(image_file) for image_file, score in result])
-            _save_results(predicted, args.results_path, method='{}_{}_{}_{}'.format(keypoint_method, descriptor_method, match_method, distance_metric))
+                image_files, scores = zip(*result)
+                if scores[0] == 0:
+                    predicted.append([-1])
+                else:
+                    predicted.append([_filename_to_id(image_file) for image_file in image_files])
+            _save_results(predicted, args.results_path, method='{}_{}_{}'.format(keypoint_method, descriptor_method, distance_metric))
 
         else:
             raise ValueError('Invalid mode.')
@@ -69,8 +73,8 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str, choices=['eval', 'test'])
-    parser.add_argument('--queries_path', type=str, default='../data/query_devel_W4/*.jpg')
-    parser.add_argument('--images_path', type=str, default='../data/BBDD_W4/*.jpg')
+    parser.add_argument('--queries_path', type=str, default='../data/query_devel_W4')
+    parser.add_argument('--images_path', type=str, default='../data/BBDD_W4')
     parser.add_argument('--corresp_file', type=str, default='../w4_query_devel.pkl')
     parser.add_argument('--results_path', type=str, default='../results')
     args = parser.parse_args()

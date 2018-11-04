@@ -359,16 +359,17 @@ def daisy_descriptors(image, keypoints):
 
 def lbp(image, keypoints):
     """
-        Extract descriptors from keypoints using the Local Binary Pattern method.
+    Extract descriptors from keypoints using the Local Binary Pattern method.
 
-        Args:
-            image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
-            keypoints (list): Not used
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+        keypoints (list): Not used
 
-        Returns:
-            descriptors (ndarray): 2D array of type np.float32 containing local descriptors for the keypoints.
+    Returns:
+        descriptors (ndarray): 2D array of type np.float32 containing local descriptors for the keypoints.
 
-        """
+    """
+
     result = []
     for kp in keypoints:
         img = image[round(kp.pt[1] - kp.size/2):round(kp.pt[1] + kp.size/2),
@@ -395,16 +396,16 @@ def lbp(image, keypoints):
 
 def hog_descriptor(image, keypoints):
     """
-        Extract descriptors from keypoints using the Histogram of Gradients method.
+    Extract descriptors from keypoints using the Histogram of Gradients method.
 
-        Args:
-            image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
-            keypoints (list): Not used
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+        keypoints (list): Not used
 
-        Returns:
-            descriptors (ndarray): 2D array of type np.float32 containing local descriptors for the keypoints.
+    Returns:
+        descriptors (ndarray): 2D array of type np.float32 containing local descriptors for the keypoints.
 
-        """
+    """
     hog = cv2.HOGDescriptor()
     result = []
     for kp in keypoints:
@@ -428,4 +429,3 @@ def extract_local_descriptors(image, keypoints, method):
         'lbp': lbp
     }
     return func[method](image, keypoints)
-

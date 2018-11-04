@@ -7,11 +7,16 @@ from descriptors import extract_local_descriptors
 from distances import _filter_matches
 
 
+keypoint_method = 'sift'
+descriptor_method = 'sift'
+distance_metric = cv2.NORM_L1
+
+
 def _read_and_extract(image_file, mode):
     image = imageio.imread(image_file)
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    keypoints = detect_keypoints(gray, 'sift', mode)
-    descriptors = extract_local_descriptors(gray, keypoints, 'sift')
+    keypoints = detect_keypoints(gray, keypoint_method, mode)
+    descriptors = extract_local_descriptors(gray, keypoints, descriptor_method)
     return descriptors
 
 
@@ -32,9 +37,9 @@ for query_id, image_ids in corresp:
         image_embd = _read_and_extract(image_file, Mode.IMAGE)
         print('image: {} ({})'.format(image_file, len(image_embd)))
 
-        bf = cv2.BFMatcher(normType=cv2.NORM_L2)
+        bf = cv2.BFMatcher(normType=distance_metric)
         matches = bf.knnMatch(image_embd, query_embd, k=2)
-        good = _filter_matches(matches)
+        good = _filter_matches(matches, ratio=0.5)
 
         num_matched_keypoints.append(len(good))
         distances_avg.append(np.mean([m.distance for m in good]))

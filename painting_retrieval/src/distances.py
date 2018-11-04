@@ -190,7 +190,7 @@ def _filter_matches(matches, ratio=0.5):
     return good
 
 
-def _compute_similarity_score(matches, matches_thresh=10, dist_thresh=130):
+def _compute_similarity_score(matches, matches_thresh=10, dist_thresh=920):
     m = len(matches)
     d = np.mean([match.distance for match in matches]) if m > 0 else np.inf
     if m < matches_thresh or d > dist_thresh:
