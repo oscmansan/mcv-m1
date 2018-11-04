@@ -369,7 +369,7 @@ def extract_local_descriptors(image, keypoints, method):
         'sift': sift_descriptors,
         'root_sift': root_sift_descriptors,
         'daisy': daisy_descriptors,
-        'orb': orb,
+        'orb': orb_descriptors,
         'surf': surf_descriptors
     }
     return func[method](image, keypoints)
