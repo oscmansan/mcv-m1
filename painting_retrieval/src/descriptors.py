@@ -297,10 +297,6 @@ def root_sift_descriptors(image, keypoints, eps=1e-7):
     """
 
     descs = sift_descriptors(image,keypoints)
-
-    if len(keypoints) == 0:
-        return ([], None)
-
     descs /= (descs.sum(axis=1, keepdims=True) + eps)
     descs = np.sqrt(descs)
 
