@@ -335,7 +335,8 @@ def daisy_descriptors(image,keypoints):
 
     """
 
-    descs, descs_img = daisy(image, step=180, radius=58, rings=2, histograms=6, orientations=8, visualize=True)
+        daisy = cv2.xfeatures2d.DAISY_create()
+    _, descriptors = daisy.compute(image, keypoints)
 
     return descs
 
