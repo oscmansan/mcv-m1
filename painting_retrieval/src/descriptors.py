@@ -326,7 +326,7 @@ def orb_descriptors(image, keypoints):
     return des
 
 
-def daisy(image,keypoints):
+def daisy_descriptors(image,keypoints):
     """
     Extract descriptors from keypoints using the Daisy method.
 
