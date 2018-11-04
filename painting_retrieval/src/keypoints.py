@@ -131,7 +131,7 @@ def sift_keypoints(image, nkeypoints):
     return keypoints
 
 
-def surf_keypoints(image):
+def surf_keypoints(image, hessian_thresh):
     """
     Extract keypoints of an image using Box Filter to approximate LoG, and the
     Hessian matrix for both scale and location.
@@ -144,7 +144,7 @@ def surf_keypoints(image):
 
     """
 
-    surf = cv2.xfeatures2d.SURF_create()
+    surf = cv2.xfeatures2d.SURF_create(hessian_thresh)
     keypoints = surf.detect(image)
     return keypoints
 
