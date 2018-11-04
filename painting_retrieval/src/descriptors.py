@@ -283,7 +283,7 @@ def sift_descriptors(image, keypoints):
     return descriptors
 
 
-def root_sift(image, keypoints, eps=1e-7):
+def root_sift_descriptors(image, keypoints, eps=1e-7):
     """
     Extract descriptors from keypoints using the Sift method.
 
