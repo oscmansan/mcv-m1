@@ -367,7 +367,7 @@ def surf_descriptors(image, keypoints):
 def extract_local_descriptors(image, keypoints, method):
     func = {
         'sift': sift_descriptors,
-        'root_sift': root_sift,
+        'root_sift': root_sift_descriptors,
         'daisy': daisy,
         'orb': orb,
         'surf': surf_descriptors
