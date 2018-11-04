@@ -172,7 +172,7 @@ def detect_keypoints(image, method):
         'dog': difference_of_gaussian,
         'log': laplacian_of_gaussian,
         'doh': determinant_of_hessian,
-        'orb': orb_keypoints
+        'orb': orb_keypoints,
         'hl': harris_laplacian,
         'sift': sift_keypoints,
         'surf': surf_keypoints
