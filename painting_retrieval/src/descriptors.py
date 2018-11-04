@@ -271,8 +271,7 @@ def sift_descriptors(image, keypoints):
 
 
 def root_sift(image, keypoints, eps=1e-7):
-    image_gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
-    descs = sift_descriptors(image_gray,keypoints)
+    descs = sift_descriptors(image,keypoints)
 
     if len(keypoints) == 0:
         return ([], None)
@@ -284,15 +283,15 @@ def root_sift(image, keypoints, eps=1e-7):
 
 
 def orb(image, keypoints):
-    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     orb = cv2.ORB_create()
-    kp, des = orb.compute(image_gray, keypoints)
+    kp, des = orb.compute(image, keypoints)
+
     return des
 
 
-def daisy_descriptor(image,keypoints):
-    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    descs, descs_img = daisy(image_gray, step=180, radius=58, rings=2, histograms=6, orientations=8, visualize=True)
+def daisy(image,keypoints):
+    descs, descs_img = daisy(image, step=180, radius=58, rings=2, histograms=6, orientations=8, visualize=True)
+
     return descs
 
 
@@ -300,7 +299,7 @@ def extract_local_descriptors(image, keypoints, method):
     func = {
         'sift': sift_descriptors,
         'root_sift': root_sift,
-        'daisy': daisy_descriptor,
+        'daisy': daisy,
         'orb': orb
     }
     return func[method](image, keypoints)
