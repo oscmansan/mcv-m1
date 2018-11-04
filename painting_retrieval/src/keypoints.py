@@ -18,6 +18,7 @@ def _keypoints(image):
     pass
 
 
+
 def sift_keypoints(image):
     """
     Extract keypoints of an image using Difference of Gaussians method.
@@ -49,6 +50,7 @@ def orb_keypoints(image):
     orb = cv2.ORB_create()
     kp = orb.detect(image, None)
     return kp
+
 
 def laplacian_of_gaussian(image):
     """
@@ -113,12 +115,66 @@ def determinant_of_hessian(image):
     return keypoints
 
 
+def harris_laplacian(image):
+    """
+    Extract keypoints of an image using the Harris-Laplace feature detector as described
+    in "Scale & Affine Invariant Interest Point Detectors" (Mikolajczyk and Schimd).
+
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+
+    Returns:
+        (list of cv2.KeyPoint objects): list of keypoints.
+    """
+
+    hl = cv2.xfeatures2d.HarrisLaplaceFeatureDetector_create()
+    keypoints = hl.detect(image)
+    return keypoints
+
+
+def sift_keypoints(image):
+    """
+    Extract keypoints of an image using Difference of Gaussians method.
+
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+
+    Returns:
+        (list of cv2.KeyPoint objects): list of keypoints.
+
+    """
+
+    sift = cv2.xfeatures2d.SIFT_create()
+    keypoints = sift.detect(image)
+    return keypoints
+
+
+def surf_keypoints(image):
+    """
+    Extract keypoints of an image using Box Filter to approximate LoG, and the
+    Hessian matrix for both scale and location.
+
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+
+    Returns:
+        (list of cv2.KeyPoint objects): list of keypoints.
+
+    """
+
+    surf = cv2.xfeatures2d.SURF_create()
+    keypoints = surf.detect(image)
+    return keypoints
+
+
 def detect_keypoints(image, method):
     func = {
         'dog': difference_of_gaussian,
         'log': laplacian_of_gaussian,
         'doh': determinant_of_hessian,
-        'sift': sift_keypoints,
         'orb': orb_keypoints
+        'hl': harris_laplacian,
+        'sift': sift_keypoints,
+        'surf': surf_keypoints
     }
     return func[method](image)

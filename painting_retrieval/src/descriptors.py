@@ -265,6 +265,19 @@ def extract_global_descriptors(image, method):
 
 
 def sift_descriptors(image, keypoints):
+    """
+    Extract descriptors from keypoints using the SIFT method.
+
+    Args:
+        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
+        keypoints (list): list of cv2.KeyPoint objects.
+
+    Returns:
+        descriptors (ndarray): 2D array of type np.float32 and shape (#keypoints x 128)
+            containing local descriptors for the keypoints.
+
+    """
+
     sift = cv2.xfeatures2d.SIFT_create()
     _, descriptors = sift.compute(image, keypoints)
     return descriptors
@@ -331,6 +344,7 @@ def daisy(image,keypoints):
     return descs
 
 
+
 def surf_descriptors(image, keypoints):
     """
     Extract descriptors from keypoints using the SURF method.
@@ -348,6 +362,7 @@ def surf_descriptors(image, keypoints):
     surf = cv2.xfeatures2d.SURF_create()
     _, descriptors = surf.compute(image, keypoints)
     return descriptors
+
 
 def extract_local_descriptors(image, keypoints, method):
     func = {

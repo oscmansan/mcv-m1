@@ -38,28 +38,38 @@ def _load_or_compute(image_file, keypoint_method, descriptor_method):
 
 
 def query(query_file, image_files, keypoint_method, descriptor_method, match_method, distance_metric, k=10):
-    query_embd = _read_and_extract(query_file, keypoint_method, descriptor_method)
-
-    with mp.Pool(processes=20) as p:
+    query_embd = _load_or_compute(query_file, keypoint_method, descriptor_method)
+    with mp.Pool(processes=8) as p:
         image_descriptors = p.starmap(_load_or_compute, [(image_file, keypoint_method, descriptor_method) for image_file in image_files])
-        distances = p.starmap(match_descriptors, [(query_embd, image_embd, match_method, distance_metric) for image_embd in image_descriptors])
 
-    inds = np.argsort(distances)[:k]
-    result = [(image_files[i], distances[i]) for i in inds]
+    scores = []
+    for image_embd in image_descriptors:
+        score = match_descriptors(query_embd, image_embd, match_method, distance_metric)
+        scores.append(score)
+
+    inds = np.argsort(scores)[::-1][:k]
+    result = [(image_files[i], scores[i]) for i in inds]
     return result
 
 
 def query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric, k=10):
     results = []
-    with mp.Pool(processes=20) as p:
-        with Timer('extract descriptors'):
+    with Timer('extract descriptors'):
+        with mp.Pool(processes=8) as p:
             query_descriptors = p.starmap(_load_or_compute, [(query_file, keypoint_method, descriptor_method) for query_file in query_files])
             image_descriptors = p.starmap(_load_or_compute, [(image_file, keypoint_method, descriptor_method) for image_file in image_files])
 
-        with Timer('match descriptors'):
-            for query_embd in query_descriptors:
-                distances = p.starmap(match_descriptors, [(query_embd, image_embd, match_method, distance_metric) for image_embd in image_descriptors])
-                inds = np.argsort(distances)[:k]
-                result = [(image_files[i], distances[i]) for i in inds]
-                results.append(result)
+    with Timer('match descriptors'):
+        for i, (query_file, query_embd) in enumerate(zip(query_files, query_descriptors), 1):
+            print('({}/{}) {}: {} descriptors'.format(i, len(query_files), query_file, len(query_embd)))
+
+            scores = []
+            for j, (image_file, image_embd) in enumerate(zip(image_files, image_descriptors), 1):
+                print('({}/{}) {}: {} descriptors'.format(j, len(image_files), image_file, len(image_embd)))
+                score = match_descriptors(query_embd, image_embd, match_method, distance_metric)
+                scores.append(score)
+
+            inds = np.argsort(scores)[::-1][:k]
+            result = [(image_files[i], scores[i]) for i in inds]
+            results.append(result)
     return results
