@@ -334,7 +334,7 @@ def orb_descriptors(image, keypoints):
 
     """
 
-    orb = cv2.ORB_create()
+    orb = cv2.ORB_create(WTA_K=4)
     _, descriptors = orb.compute(image, keypoints)
     return descriptors
 
