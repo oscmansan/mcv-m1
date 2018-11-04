@@ -18,24 +18,6 @@ def _keypoints(image):
     pass
 
 
-
-def sift_keypoints(image):
-    """
-    Extract keypoints of an image using Difference of Gaussians method.
-
-    Args:
-        image (ndarray): (H x W) 2D array of type np.uint8 containing a grayscale image.
-
-    Returns:
-        (list of cv2.KeyPoint objects): list of keypoints.
-
-    """
-
-    sift = cv2.xfeatures2d.SIFT_create()
-    keypoints = sift.detect(image)
-    return keypoints
-
-
 def orb_keypoints(image):
     """
     Extract keypoints of an image using Difference of Gaussians method.
