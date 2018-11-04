@@ -7,7 +7,6 @@ from scipy.fftpack import dct
 from skimage.feature import greycomatrix, greycoprops
 from skimage.filters import gabor_kernel
 from sklearn.cluster import KMeans
-from skimage.feature import daisy
 
 
 def _descriptors(image):
