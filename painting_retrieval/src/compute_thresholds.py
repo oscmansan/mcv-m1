@@ -2,19 +2,15 @@ import numpy as np
 import imageio
 import cv2
 
-from keypoints import detect_keypoints
+from keypoints import detect_keypoints, Mode
 from descriptors import extract_local_descriptors
 from distances import _filter_matches
 
 
-NUM_KEYPOINTS_QUERY = 10000
-NUM_KEYPOINTS_IMAGE = 1000
-
-
-def _read_and_extract(image_file, nkeypoints):
+def _read_and_extract(image_file, mode):
     image = imageio.imread(image_file)
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    keypoints = detect_keypoints(gray, 'sift', nkeypoints)
+    keypoints = detect_keypoints(gray, 'sift', mode)
     descriptors = extract_local_descriptors(gray, keypoints, 'sift')
     return descriptors
 
@@ -28,12 +24,12 @@ for query_id, image_ids in corresp:
         continue
 
     query_file = '../data/query_devel_W4/ima_{:06d}.jpg'.format(query_id)
-    query_embd = _read_and_extract(query_file, NUM_KEYPOINTS_QUERY)
+    query_embd = _read_and_extract(query_file, Mode.QUERY)
     print('query: {} ({})'.format(query_file, len(query_embd)))
 
     for image_id in image_ids:
         image_file = '../data/BBDD_W4/ima_{:06d}.jpg'.format(image_id)
-        image_embd = _read_and_extract(image_file, NUM_KEYPOINTS_IMAGE)
+        image_embd = _read_and_extract(image_file, Mode.IMAGE)
         print('image: {} ({})'.format(image_file, len(image_embd)))
 
         bf = cv2.BFMatcher(normType=cv2.NORM_L2)
