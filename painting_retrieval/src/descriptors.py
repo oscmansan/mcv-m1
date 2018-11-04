@@ -307,7 +307,7 @@ def root_sift_descriptors(image, keypoints, eps=1e-7):
     return descs
 
 
-def orb(image, keypoints):
+def orb_descriptors(image, keypoints):
     """
     Extract descriptors from keypoints using the ORB method.
 
