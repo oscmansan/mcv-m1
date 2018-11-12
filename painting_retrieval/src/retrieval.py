@@ -9,13 +9,15 @@ from keypoints import detect_keypoints, Mode
 from descriptors import extract_local_descriptors
 from distances import match_descriptors
 from timer import Timer
+from detection_picture import crop_picture
 
 
 def _read_and_extract(image_file, keypoint_method, descriptor_method, mode):
     image = imageio.imread(image_file)
     image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    keypoints = detect_keypoints(image_gray, keypoint_method, mode)
-    descriptors = extract_local_descriptors(image_gray, keypoints, descriptor_method)
+    cropped_image = crop_picture(image_gray)
+    keypoints = detect_keypoints(cropped_image, keypoint_method, mode)
+    descriptors = extract_local_descriptors(cropped_image, keypoints, descriptor_method)
     return descriptors
 
 

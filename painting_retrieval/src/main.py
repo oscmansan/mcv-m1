@@ -32,10 +32,10 @@ def main(args):
         with open(args.corresp_file, 'rb') as f:
             query_gt = dict(pickle.load(f))
 
-    keypoint_methods = ['sift']
-    descriptor_methods = ['sift']
+    keypoint_methods = ['orb']
+    descriptor_methods = ['orb']
     match_methods = ['brute_force']
-    distance_metrics = ['l1']
+    distance_metrics = ['hamming']
 
     for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
         results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
@@ -73,9 +73,9 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str, choices=['eval', 'test'])
-    parser.add_argument('--queries_path', type=str, default='../data/query_devel_W4')
-    parser.add_argument('--images_path', type=str, default='../data/BBDD_W4')
-    parser.add_argument('--corresp_file', type=str, default='../w4_query_devel.pkl')
+    parser.add_argument('--queries_path', type=str, default='../data/w5_devel_random')
+    parser.add_argument('--images_path', type=str, default='../data/w5_BBDD_random')
+    parser.add_argument('--corresp_file', type=str, default='../w5_query_devel.pkl')
     parser.add_argument('--results_path', type=str, default='../results')
     args = parser.parse_args()
     main(args)

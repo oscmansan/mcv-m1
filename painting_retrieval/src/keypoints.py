@@ -157,7 +157,7 @@ def surf_keypoints(image, mode):
     return keypoints
 
 
-def orb_keypoints(image):
+def orb_keypoints(image, mode):
     """
     Extract keypoints of an image using the ORB method.
 
@@ -169,7 +169,7 @@ def orb_keypoints(image):
 
     """
 
-    orb = cv2.ORB_create()
+    orb = cv2.ORB_create(WTA_K=4)
     keypoints = orb.detect(image)
     return keypoints
 
