@@ -15,7 +15,10 @@ from detection_picture import crop_picture
 def _read_and_extract(image_file, keypoint_method, descriptor_method, mode):
     image = imageio.imread(image_file)
     image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    cropped_image = crop_picture(image_gray)
+    if mode == Mode.QUERY:
+        cropped_image = crop_picture(image, image_gray)
+    else:
+        cropped_image = image_gray
     keypoints = detect_keypoints(cropped_image, keypoint_method, mode)
     descriptors = extract_local_descriptors(cropped_image, keypoints, descriptor_method)
     return descriptors
