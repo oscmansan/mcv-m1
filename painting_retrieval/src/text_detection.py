@@ -1,4 +1,4 @@
-import glob
+import glob, os
 import argparse
 import pickle
 import random
@@ -9,6 +9,7 @@ import imutils
 import cv2
 
 from matplotlib import pyplot as plt
+import matplotlib.patches as mpatches
 
 
 def imshow(img):
@@ -17,34 +18,114 @@ def imshow(img):
     plt.show()
 
 
-def detect(img):
+def find_text_ROI():
+    with open("../w5_text_bbox_list.pkl", "rb") as fp:
+        # tlx,tly, brx,bry
+        bbox_gt = pickle.load(fp)
+
+    top_limit_vector = []
+    bottom_limit_vector = []
+    area_vector = []
+    for image in glob.glob('../data/w5_BBDD_random/*.jpg'):
+        im = cv2.imread(image)
+        index = int(os.path.split(image)[-1].split(".")[0].split("_")[1])
+        tlx, tly, brx, bry = bbox_gt[index]
+        H, W, _ = np.shape(im)
+        h = bry - tly
+        w = brx - tlx
+        area_vector.append((h * w) / (H * W))
+        if bry < H / 2:
+            top_limit_vector.append(bry / H)
+        else:
+            if tly / H > 1:
+                print(image)
+                print(bbox_gt[index])
+            bottom_limit_vector.append(tly / H)
+    top_limit = max(top_limit_vector)
+    bottom_limit = min(bottom_limit_vector)
+    print("Top and bottom limits", top_limit, bottom_limit)
+    print("Min and max areas", min(area_vector), max(area_vector))
+
+
+def fill_holes(mask):
+    im_floodfill = mask.astype(np.uint8).copy()
+    h, w = im_floodfill.shape[:2]
+    filling_mask = np.zeros((h + 2, w + 2), np.uint8)
+    cv2.floodFill(im_floodfill, filling_mask, (0, 0), 1)
+    return mask.astype(np.uint8) | cv2.bitwise_not(im_floodfill)
+
+
+def visualize_boxes(image, window_candidates):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.imshow(image)
+    if len(window_candidates) > 0:
+        for candidate in window_candidates:
+            # tlx,tly, brx,bry
+            minc, minr, maxc, maxr = candidate
+            rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor='red', linewidth=2)
+            ax.add_patch(rect)
+
+    plt.show()
+
+
+def detect(img, method="difference"):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    tophat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
-    #imshow(tophat)
-    blackhat = cv2.cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
-    #imshow(blackhat)
+    if method == "tophat":
 
-    tophat = tophat if np.sum(tophat) > np.sum(blackhat) else blackhat
+        tophat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+        blackhat = cv2.cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
-    thresh = cv2.threshold(tophat, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-    #imshow(thresh)
+        tophat = tophat if np.sum(tophat) > np.sum(blackhat) else blackhat
 
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (15, 3)))
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3)))
-    #imshow(thresh)
+        thresh = cv2.threshold(tophat, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
-    contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (15, 3)))
+        expansion = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3)))
+        final_mask = expansion
+
+    elif method == "difference":
+        opening = cv2.morphologyEx(gray, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+        closing = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+        blur = cv2.GaussianBlur(closing - opening, (7, 7), 0)
+
+        thresh2 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+
+        f1 = fill_holes(thresh2)
+        # thresh2 = cv2.threshold(thresh4,250,255,cv2.THRESH_BINARY)[1]
+        # imshow(thresh2,"thresh2")
+
+        expansion = cv2.morphologyEx(thresh2, cv2.MORPH_DILATE, cv2.getStructuringElement(cv2.MORPH_RECT, (10, 3)))
+        # expansion = cv2.morphologyEx(thresh4, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3)))
+        final_mask = expansion
+
+    imshow(final_mask)
+    contours = cv2.findContours(final_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
     boxes = []
+    bad_boxes = []
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
         area = cv2.contourArea(cnt)
+        H, W, _ = np.shape(img)
         rect_area = w * h
+        image_area = H * W
         extent = area / rect_area
+        tly = y
+        bry = tly + h
 
-        if extent > 0.2 and h > 10 and 2 < w / h:
+        cond1 = extent > 0.2
+        cond2 = h > 10
+        cond3 = rect_area / image_area <= 0.2935
+        cond4 = 1.75 < w / h
+        cond5 = tly / H >= 0.5719 or bry / H <= 0.2974
+
+        if cond1 and cond2 and cond3 and cond4 and cond5:
             boxes.append((x, y, x + w, y + h))
+        else:
+            bad_boxes.append((x, y, x + w, y + h))
+            # print(cond1, cond2, cond3, cond4, cond5)
+    visualize_boxes(img, bad_boxes)
 
     return boxes
 
@@ -72,7 +153,7 @@ def bbox_iou(bboxA, bboxB):
 def correct_boxes(boxes, orig_h, orig_w, h, w):
     w_ratio = orig_w / w
     h_ratio = orig_h / h
-    return [(b[0]*w_ratio, b[1]*h_ratio, b[2]*w_ratio, b[3]*h_ratio) for b in boxes]
+    return [(b[0] * w_ratio, b[1] * h_ratio, b[2] * w_ratio, b[3] * h_ratio) for b in boxes]
 
 
 def test(image_file):
@@ -132,15 +213,15 @@ def main():
 
     if args.mode == 'test':
         image = random.choice(glob.glob('../data/w5_BBDD_random/*.jpg'))
-        #image = '../data/w5_BBDD_random/ima_000075.jpg'
-        #image = '../data/w5_BBDD_random/ima_000124.jpg'
-        #image = '../data/w5_BBDD_random/ima_000153.jpg'
-        #image = '../data/w5_BBDD_random/ima_000059.jpg'
+        image = '../data/w5_BBDD_random/ima_000075.jpg'
+        # image = '../data/w5_BBDD_random/ima_000124.jpg'
+        # image = '../data/w5_BBDD_random/ima_000153.jpg'
+        # image = '../data/w5_BBDD_random/ima_000059.jpg'
         test(image)
 
     elif args.mode == 'eval':
         images = glob.glob('../data/w5_BBDD_random/*.jpg')
-        #images = np.random.choice(images, 10)
+        # images = np.random.choice(images, 10)
         eval(images, iou_thresh=0.1)
 
 
