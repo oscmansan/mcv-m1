@@ -1,22 +1,10 @@
+import os
+import glob
 import math
-from scipy import ndimage
-from sklearn.cluster import KMeans
-from skimage.filters import roberts, sobel, scharr, prewitt
-
-from skimage.filters import threshold_local
-
 import cv2
 import numpy as np
 import numpy.linalg as la
-import PIL
-#Gaussian blur
-#Canny edge detection
-#Finding Hough lines
-#Extrapolating the intersection of the Hough lines to get corners
-import os
 import imageio
-
-import glob
 import matplotlib.pyplot as plt
 
 
@@ -45,9 +33,6 @@ def SortCorners(points):
         angle.append(math.atan2(a[1]-C[1],a[0]-C[0]))
     ID=np.argsort(angle)
     sorted_p=points[ID]
-    #print points
-    #print ID
-    #print sorted_p
     return sorted_p
 
 
@@ -60,12 +45,9 @@ def IsSquare(vcti):
     s_vct=len(vct)
     for i in range (s_vct):
         angles.append(FindAngle((vct[i%s_vct])[0], (vct[(i-1)%s_vct])[0], (vct[(i+1)%s_vct])[0]))
-        #print angles
-    #print angles
     min = 80
     max = 100
     if min<=angles[0]<=max and min<=angles[1]<=max and min<=angles[2]<=max:
-        ## tolerance 90(+/-)2
         return True
     return False
 
@@ -73,7 +55,6 @@ def IsSquare(vcti):
 def box_in_image(box, img):
     h = img.shape[1]
     w = img.shape[0]
-    print(box)
     for i in range(len(box)):
         if len(box[i]) > 1:
             box[i][0] = max(0, min(h - 1, box[i][0]))
@@ -85,15 +66,9 @@ def box_in_image(box, img):
 
 
 def bbox_characteristics(cnt, gray):
-    print(cnt)
     rect = cv2.minAreaRect(cnt)
     bbox_center = rect[0]
-    print(bbox_center)
     img_center = (round(gray.shape[1] / 2), round(gray.shape[0] / 2))
-    #cv2.line(gray, (round(bbox_center[0]), round(bbox_center[1])), img_center, 15, 14)
-    #plt.imshow(gray)
-    #plt.show()
-    print(img_center)
     dist = math.sqrt(((bbox_center[0] - img_center[0]) ** 2) + ((bbox_center[1] - img_center[1]) ** 2))
     area = cv2.contourArea(cnt)
     angle = rect[2]
@@ -128,8 +103,6 @@ def detect_frame(gray):
 
     img_canny_dilation = cv2.dilate(canny_gradient, kernel, iterations=1)
     imS = cv2.resize(img_canny_dilation, (960, 540))  # Resize image
-    #plt.imshow(imS)
-    #plt.show()
 
 
     # Contour detection along the edges
@@ -158,31 +131,14 @@ def detect_frame(gray):
             screenCnt.append(box)
 
     screenCntFinal = sorted(screenCnt, key=cv2.contourArea, reverse=True)[:5]
-    m2 = cv2.drawContours(img, screenCntFinal, -1, (0, 255, 0), 3)
-    imS = cv2.resize(img, (960, 540))  # Resize image
-    plt.imshow(imS)
-    plt.show()
 
     frame_bbox = box_in_image(screenCntFinal[0], gray)
     dist_i, area_i, angle_i = bbox_characteristics(frame_bbox, gray)
-    print(dist_i)
-    print(area_i)
-    print(angle_i)
     for i in range(len(screenCntFinal)-1):
         dist_next, area_next, angle_next = bbox_characteristics(box_in_image(screenCntFinal[i+1], gray), gray)
-        print(dist_next)
-        print(area_next)
-        print(angle_next)
         if area_next > area_i*0.6 and (abs(angle_next) < abs(angle_i)*3 or dist_next < dist_i*0.6):
             if dist_next*abs(angle_next)/(2*area_next) < dist_i*abs(angle_i)/(2*area_i) or (dist_next < dist_i*1.2):
                 frame_bbox = screenCntFinal[i+1]
-                print('FRAME!')
-        #if area_next > area_i*0.9:
-        #    if dist_next < dist_i*1.1:
-        #        frame_bbox = screenCntFinal[i+1]
-        #elif dist_next < dist_i*1.5 and area_next > area_i*0.6:
-        #    frame_bbox = screenCntFinal[i + 1]
-
     return frame_bbox
 
 
@@ -219,12 +175,11 @@ if __name__ == '__main__':
     for filename in glob.glob(os.path.join('../data/w5_devel_random/*.jpg')):
         print(filename)
         img = imageio.imread(filename)
-        print(img.shape)
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         frame_bbox = detect_frame(gray)
 
-        m2 = cv2.drawContours(img, [frame_bbox], -1, (0, 255, 0), 3)
-        imS = cv2.resize(img, (960, 540))  # Resize image
+        #m2 = cv2.drawContours(img, [frame_bbox], -1, (0, 255, 0), 3)
+        #imS = cv2.resize(img, (960, 540))  # Resize image
         #plt.imshow(imS)
         #plt.show()
 
