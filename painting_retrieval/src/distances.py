@@ -3,7 +3,7 @@ from __future__ import division
 import cv2
 import numpy as np
 from scipy.spatial import distance
-#import nmslib
+import nmslib
 
 
 def _distance(u, v):
@@ -230,19 +230,18 @@ def flann_match(query_des, image_des, distance_metric):
 
 
 def nmslib_match(query_des, image_des, distance_metric):
-    #index = nmslib.init(method='hnsw', space='l2sqr_sift', data_type=nmslib.DataType.DENSE_UINT8_VECTOR, dtype=nmslib.DistType.INT)
-    #index.addDataPointBatch(query_des.astype(np.uint8))
-    #index.createIndex({'M': 16, 'efConstruction': 100})
-    #index.setQueryTimeParams({'efSearch': 100})
+    index = nmslib.init(method='hnsw', space='l2sqr_sift', data_type=nmslib.DataType.DENSE_UINT8_VECTOR, dtype=nmslib.DistType.INT)
+    index.addDataPointBatch(query_des.astype(np.uint8))
+    index.createIndex({'M': 16, 'efConstruction': 100})
+    index.setQueryTimeParams({'efSearch': 100})
 
     # For each image descriptor, find best k matches among query descriptors
-    #matches = index.knnQueryBatch(image_des.astype(np.uint8), k=2)
-    #matches = [[cv2.DMatch(query_idx, train_idx, distance) for train_idx, distance in zip(*match)] for query_idx, match in enumerate(matches)]
-    #good = _filter_matches(matches)
-    #score = _compute_similarity_score(good)
+    matches = index.knnQueryBatch(image_des.astype(np.uint8), k=2)
+    matches = [[cv2.DMatch(query_idx, train_idx, distance) for train_idx, distance in zip(*match)] for query_idx, match in enumerate(matches)]
+    good = _filter_matches(matches)
+    score = _compute_similarity_score(good)
 
-    #return score
-    return 1
+    return score
 
 
 def match_descriptors(query_des, image_des, method, distance_metric):
