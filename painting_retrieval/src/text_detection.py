@@ -66,7 +66,7 @@ def fill_holes(mask):
 
 def merge_boxes(boxes):
     y = np.array([[(b[1] + b[3]) / 2, b[3] - b[1]] for b in boxes])
-    clt = DBSCAN(eps=20, min_samples=1, metric='cityblock').fit(y)
+    clt = DBSCAN(eps=22, min_samples=1, metric='l1').fit(y)
     labels = clt.labels_
 
     clusters = defaultdict(list)
@@ -76,11 +76,15 @@ def merge_boxes(boxes):
     clusters = clusters.values()
 
     merged_boxes = []
+    areas = []
     for clt in clusters:
         x, y, w, h = cv2.boundingRect(points=np.concatenate(clt).reshape(-1, 2))
         merged_boxes.append((x, y, x + w, y + h))
 
-    return merged_boxes
+        area = np.sum([(b[2]-b[0])*(b[3]-b[1]) for b in clt])
+        areas.append(area)
+
+    return merged_boxes, areas
 
 
 def detect(img, method='difference', show=False):
@@ -105,25 +109,26 @@ def detect(img, method='difference', show=False):
     def difference(img):
         closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 3)))
         opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
-        blur = cv2.GaussianBlur(closing - opening, (7, 7), 0)
+        tophat = closing - opening
+        #blur = cv2.GaussianBlur(tophat, (7, 7), 0)
 
         #thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-        thresh = cv2.threshold(blur, 0.35*blur.max(), 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(tophat, 0.5*tophat.max(), 255, cv2.THRESH_BINARY)[1]
 
-        filled = fill_holes(thresh)
+        #filled = fill_holes(thresh)
         #thresh = cv2.threshold(thresh4,250,255,cv2.THRESH_BINARY)[1]
         #imshow(thresh)
 
-        expansion = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, cv2.getStructuringElement(cv2.MORPH_RECT, (11, 1)))
+        dilation = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, cv2.getStructuringElement(cv2.MORPH_RECT, (11, 1)))
         #expansion = cv2.morphologyEx(thresh4, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3)))
 
         if show:
             imshow(closing)
             imshow(opening)
-            imshow(blur)
+            imshow(tophat)
             imshow(thresh)
 
-        return expansion
+        return dilation
 
     func = {
         'tophat': tophat,
@@ -165,19 +170,21 @@ def detect(img, method='difference', show=False):
 
     # merge boxes
     if boxes:
-        merged_boxes = merge_boxes(boxes)
+        merged_boxes, areas = merge_boxes(boxes)
         if show:
             imshow(draw_boxes(cv2.cvtColor(img, cv2.COLOR_GRAY2RGB), merged_boxes))
 
         filtered_boxes = []
-        for box in merged_boxes:
+        filtered_areas = []
+        for box, area in zip(merged_boxes, areas):
             tlx, tly, brx, bry = box
             h = bry-tly
             w = brx-tlx
             if 0.05 < h/w < 0.25:
                 filtered_boxes.append(box)
+                filtered_areas.append(area)
         if filtered_boxes:
-            idx = np.argmax([(b[2]-b[0])*(b[3]-b[1]) for b in filtered_boxes])
+            idx = np.argmax(filtered_areas)
             boxes = [filtered_boxes[idx]]
         else:
             boxes = []
@@ -282,7 +289,7 @@ def test(image_file):
     img = cv2.imread(image_file)
     resized = imutils.resize(img, width=512)
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    boxes = detect(gray, method='difference', show=True)
+    boxes = detect(gray, method='difference', show=False)
 
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     imshow(draw_boxes(rgb, boxes))
@@ -298,13 +305,18 @@ def main():
         #image = '../data/w5_BBDD_random/ima_000075.jpg'
         #image = '../data/w5_BBDD_random/ima_000124.jpg'
         #image = '../data/w5_BBDD_random/ima_000153.jpg'
-        #image = '../data/w5_BBDD_random/ima_000059.jpg'
+        #image = '../data/w5_BBDD_random/ima_000059.jpg'  # FIXME
         #image = '../data/w5_BBDD_random/ima_000115.jpg'
-        #image = '../data/w5_BBDD_random/ima_000016.jpg'
+        #image = '../data/w5_BBDD_random/ima_000016.jpg'  # FIXME
         #image = '../data/w5_BBDD_random/ima_000108.jpg'
         #image = '../data/w5_BBDD_random/ima_000155.jpg'
         #image = '../data/w5_BBDD_random/ima_000052.jpg'
         #image = '../data/w5_BBDD_random/ima_000204.jpg'
+        #image = '../data/w5_BBDD_random/ima_000055.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000085.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000146.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000037.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000061.jpg'  # FIXME
         test(image)
 
     elif args.mode == 'eval':
