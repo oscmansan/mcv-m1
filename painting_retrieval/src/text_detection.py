@@ -252,7 +252,18 @@ def bbox_iou(bboxA, bboxB):
     return iou
 
 
-def eval(image_files, iou_thresh=0.5):
+def save_results(predicted):
+    results = [list(map(int, list(pred[0]))) if pred else [0, 0, 0, 0] for pred in predicted]
+    path = '../results'
+    if not os.path.exists(path):
+        os.mkdir(path)
+    file_name = os.path.join(path, 'text.pkl')
+    print('Saving text detection results to {}'.format(file_name))
+    with open(file_name, "wb") as fp:
+        pickle.dump(results, fp)
+
+
+def eval(image_files, iou_thresh=0.5, save=False):
     predicted = []
     for image_file in image_files:
         print(image_file)
@@ -261,6 +272,9 @@ def eval(image_files, iou_thresh=0.5):
         boxes = detect(resized)
         boxes = correct_boxes(boxes, *gray.shape[:2], *resized.shape[:2])
         predicted.append(boxes)
+
+    if save:
+        save_results(predicted)
 
     with open('../w5_text_bbox_list.pkl', 'rb') as f:
         actual = pickle.load(f)
@@ -282,6 +296,10 @@ def eval(image_files, iou_thresh=0.5):
     rec = tp / npos
     print('prec: {:.4f}, rec: {:.4f}'.format(prec, rec))
 
+    overlap = [bbox_iou(det, gt) for pred, gt in zip(predicted, actual) for det in pred]
+    mean_overlap = np.mean(overlap)
+    print('mean IoU: {:.4f}'.format(mean_overlap))
+
 
 def test(image_file):
     print(image_file)
@@ -289,7 +307,7 @@ def test(image_file):
     img = cv2.imread(image_file)
     resized = imutils.resize(img, width=512)
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    boxes = detect(gray, method='difference', show=False)
+    boxes = detect(gray, method='difference', show=True)
 
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     imshow(draw_boxes(rgb, boxes))
@@ -305,24 +323,36 @@ def main():
         #image = '../data/w5_BBDD_random/ima_000075.jpg'
         #image = '../data/w5_BBDD_random/ima_000124.jpg'
         #image = '../data/w5_BBDD_random/ima_000153.jpg'
-        #image = '../data/w5_BBDD_random/ima_000059.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000059.jpg'
         #image = '../data/w5_BBDD_random/ima_000115.jpg'
-        #image = '../data/w5_BBDD_random/ima_000016.jpg'  # FIXME
         #image = '../data/w5_BBDD_random/ima_000108.jpg'
         #image = '../data/w5_BBDD_random/ima_000155.jpg'
         #image = '../data/w5_BBDD_random/ima_000052.jpg'
         #image = '../data/w5_BBDD_random/ima_000204.jpg'
-        #image = '../data/w5_BBDD_random/ima_000055.jpg'  # FIXME
-        #image = '../data/w5_BBDD_random/ima_000085.jpg'  # FIXME
-        #image = '../data/w5_BBDD_random/ima_000146.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000055.jpg'
+        #image = '../data/w5_BBDD_random/ima_000146.jpg'
+        #image = '../data/w5_BBDD_random/ima_000061.jpg'
         #image = '../data/w5_BBDD_random/ima_000037.jpg'  # FIXME
-        #image = '../data/w5_BBDD_random/ima_000061.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000111.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000002.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000006.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000007.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000016.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000020.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000027.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000038.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000047.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000063.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000066.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000082.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000085.jpg'  # FIXME
+        #image = '../data/w5_BBDD_random/ima_000101.jpg'  # FIXME
         test(image)
 
     elif args.mode == 'eval':
         images = glob.glob('../data/w5_BBDD_random/*.jpg')
         #images = np.random.choice(images, 10)
-        eval(images, iou_thresh=0.3)
+        eval(images, iou_thresh=0.3, save=True)
 
 
 if __name__ == '__main__':
