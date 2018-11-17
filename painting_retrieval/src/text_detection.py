@@ -3,10 +3,12 @@ import glob
 import argparse
 import pickle
 import random
+from collections import defaultdict
 
 import numpy as np
 import imutils
 import cv2
+from sklearn.cluster import DBSCAN
 
 from matplotlib import pyplot as plt
 
@@ -20,8 +22,8 @@ def imshow(img):
 def draw_boxes(image, boxes, color=(0, 255, 0)):
     for bbox in boxes:
         x1, y1, x2, y2 = bbox
-        print('({:.2f}, {:.2f}, {:.2f}, {:.2f})'.format(x1, y1, x2, y2))
-        cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=1)
+        #print('({:.2f}, {:.2f}, {:.2f}, {:.2f})'.format(x1, y1, x2, y2))
+        cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=2)
     return image
 
 
@@ -62,6 +64,25 @@ def fill_holes(mask):
     return mask.astype(np.uint8) | cv2.bitwise_not(im_floodfill)
 
 
+def merge_boxes(boxes):
+    y = np.array([[(b[1] + b[3]) / 2, b[3] - b[1]] for b in boxes])
+    clt = DBSCAN(eps=20, min_samples=1, metric='cityblock').fit(y)
+    labels = clt.labels_
+
+    clusters = defaultdict(list)
+    for box, label in zip(boxes, labels):
+        if label != -1:
+            clusters[label].append(box)
+    clusters = clusters.values()
+
+    merged_boxes = []
+    for clt in clusters:
+        x, y, w, h = cv2.boundingRect(points=np.concatenate(clt).reshape(-1, 2))
+        merged_boxes.append((x, y, x + w, y + h))
+
+    return merged_boxes
+
+
 def detect(img, method='difference', show=False):
     im_h, im_w = img.shape[:2]
 
@@ -70,26 +91,38 @@ def detect(img, method='difference', show=False):
         blackhat = cv2.cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
         tophat = tophat if np.sum(tophat) > np.sum(blackhat) else blackhat
+        if show:
+            imshow(tophat)
 
         thresh = cv2.threshold(tophat, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+        if show:
+            imshow(thresh)
 
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (15, 3)))
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3)))
         return thresh
 
     def difference(img):
+        closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 3)))
         opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
-        closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
         blur = cv2.GaussianBlur(closing - opening, (7, 7), 0)
 
-        thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+        #thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+        thresh = cv2.threshold(blur, 0.35*blur.max(), 255, cv2.THRESH_BINARY)[1]
 
         filled = fill_holes(thresh)
         #thresh = cv2.threshold(thresh4,250,255,cv2.THRESH_BINARY)[1]
         #imshow(thresh)
 
-        expansion = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, cv2.getStructuringElement(cv2.MORPH_RECT, (10, 3)))
+        expansion = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, cv2.getStructuringElement(cv2.MORPH_RECT, (11, 1)))
         #expansion = cv2.morphologyEx(thresh4, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3)))
+
+        if show:
+            imshow(closing)
+            imshow(opening)
+            imshow(blur)
+            imshow(thresh)
+
         return expansion
 
     func = {
@@ -103,7 +136,7 @@ def detect(img, method='difference', show=False):
         imshow(mask)
 
     # detect boxes from contours
-    contours = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
+    contours = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[1]
     boxes, bad_boxes = [], []
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
@@ -117,7 +150,7 @@ def detect(img, method='difference', show=False):
         cond1 = extent > 0.2
         cond2 = h > 10
         cond3 = (rect_area / image_area) <= 0.2935
-        cond4 = (w / h) > 1.75
+        cond4 = (w / h) > 1
         cond5 = (y / im_h) >= 0.5719 or ((y + h) / im_h) <= 0.2974
         #print(cond1, cond2, cond3, cond4, cond5)
 
@@ -126,32 +159,28 @@ def detect(img, method='difference', show=False):
         else:
             bad_boxes.append((x, y, x + w, y + h))
     if show:
-        imshow(draw_boxes(img, bad_boxes, color=(255, 0, 0)))
+        tmp = draw_boxes(cv2.cvtColor(img, cv2.COLOR_GRAY2RGB), bad_boxes, color=(255, 0, 0))
+        tmp = draw_boxes(tmp, boxes, color=(0, 255, 0))
+        imshow(tmp)
 
     # merge boxes
     if boxes:
-        top_boxes, bot_boxes = [], []
-        for box in boxes:
-            if box[3]/im_h <= 0.2974:
-                top_boxes.append(box)
-            elif box[1]/im_h >= 0.5719:
-                bot_boxes.append(box)
+        merged_boxes = merge_boxes(boxes)
+        if show:
+            imshow(draw_boxes(cv2.cvtColor(img, cv2.COLOR_GRAY2RGB), merged_boxes))
 
-        if not top_boxes:
-            bbox = cv2.boundingRect(points=np.concatenate(bot_boxes).reshape(-1, 2))
-        elif not bot_boxes:
-            bbox = cv2.boundingRect(points=np.concatenate(top_boxes).reshape(-1, 2))
+        filtered_boxes = []
+        for box in merged_boxes:
+            tlx, tly, brx, bry = box
+            h = bry-tly
+            w = brx-tlx
+            if 0.05 < h/w < 0.25:
+                filtered_boxes.append(box)
+        if filtered_boxes:
+            idx = np.argmax([(b[2]-b[0])*(b[3]-b[1]) for b in filtered_boxes])
+            boxes = [filtered_boxes[idx]]
         else:
-            top_bbox = cv2.boundingRect(points=np.concatenate(top_boxes).reshape(-1, 2))
-            bot_bbox = cv2.boundingRect(points=np.concatenate(bot_boxes).reshape(-1, 2))
-
-            top_area = np.sum([(box[2]-box[0])*(box[3]-box[1]) for box in top_boxes])
-            bot_area = np.sum([(box[2]-box[0])*(box[3]-box[1]) for box in bot_boxes])
-
-            bbox = top_bbox if top_area > bot_area else bot_bbox
-
-        x, y, w, h = bbox
-        boxes = [(x, y, x + w, y + h)]
+            boxes = []
 
     return boxes
 
@@ -183,9 +212,9 @@ def filter_text_keypoints(img, keypoints):
     return filtered
 
 
-def compute_text_mask(img):
+def compute_text_mask(img, method='difference'):
     resized = imutils.resize(img, width=512)
-    boxes = detect(resized)
+    boxes = detect(resized, method)
     boxes = correct_boxes(boxes, *img.shape[:2], *resized.shape[:2])
 
     mask = np.full(img.shape[:2], 255, dtype=np.uint8)
@@ -253,7 +282,7 @@ def test(image_file):
     img = cv2.imread(image_file)
     resized = imutils.resize(img, width=512)
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    boxes = detect(gray, show=False)
+    boxes = detect(gray, method='difference', show=True)
 
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     imshow(draw_boxes(rgb, boxes))
@@ -272,6 +301,10 @@ def main():
         #image = '../data/w5_BBDD_random/ima_000059.jpg'
         #image = '../data/w5_BBDD_random/ima_000115.jpg'
         #image = '../data/w5_BBDD_random/ima_000016.jpg'
+        #image = '../data/w5_BBDD_random/ima_000108.jpg'
+        #image = '../data/w5_BBDD_random/ima_000155.jpg'
+        #image = '../data/w5_BBDD_random/ima_000052.jpg'
+        #image = '../data/w5_BBDD_random/ima_000204.jpg'
         test(image)
 
     elif args.mode == 'eval':
@@ -281,7 +314,8 @@ def main():
 
 
 if __name__ == '__main__':
-    #main()
+    main()
+    '''
     from keypoints import detect_keypoints, Mode
     image_file = random.choice(glob.glob('../data/w5_BBDD_random/*.jpg'))
     gray = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)
@@ -291,3 +325,4 @@ if __name__ == '__main__':
     mask = compute_text_mask(gray)
     keypoints = detect_keypoints(gray, 'orb', Mode.IMAGE, mask)
     imshow(cv2.drawKeypoints(gray, keypoints, None))
+    '''
