@@ -190,7 +190,7 @@ def _filter_matches(matches, ratio=0.5):
     return good
 
 
-def _compute_similarity_score(matches, matches_thresh=10, dist_thresh=920):
+def _compute_similarity_score(matches, matches_thresh=5, dist_thresh=25):
     m = len(matches)
     d = np.mean([match.distance for match in matches]) if m > 0 else np.inf
     if m < matches_thresh or d > dist_thresh:
@@ -209,7 +209,7 @@ def bf_match(query_des, image_des, distance_metric):
     bf = cv2.BFMatcher(normType=norm_type[distance_metric])
 
     # For each image descriptor, find best k matches among query descriptors
-    matches = bf.knnMatch(image_des, query_des, k=2)
+    matches = bf.knnMatch(query_des, image_des, k=2)
     good = _filter_matches(matches)
     score = _compute_similarity_score(good)
 
