@@ -24,12 +24,12 @@ def _save_results(results, dst_path, method):
         pickle.dump(results, fp)
 
 
-def main(mode):
-    query_files = sorted(glob.glob(os.path.join('../data/w5_devel_random', '*.jpg')))
-    image_files = sorted(glob.glob(os.path.join('../data/w5_BBDD_random', '*.jpg')))
+def main(args):
+    query_files = sorted(glob.glob(os.path.join(args.queries_path, '*.jpg')))
+    image_files = sorted(glob.glob(os.path.join(args.images_path, '*.jpg')))
 
-    if mode == 'eval':
-        with open('../w5_query_devel.pkl', 'rb') as f:
+    if args.mode == 'eval':
+        with open(args.corresp_file, 'rb') as f:
             query_gt = dict(pickle.load(f))
 
     keypoint_methods = ['orb']
@@ -40,7 +40,7 @@ def main(mode):
     for keypoint_method, descriptor_method, match_method, distance_metric in product(keypoint_methods, descriptor_methods, match_methods, distance_metrics):
         results = query_batch(query_files, image_files, keypoint_method, descriptor_method, match_method, distance_metric)
 
-        if mode == 'eval':
+        if args.mode == 'eval':
             actual = []
             predicted = []
             for query_file, result in zip(query_files, results):
@@ -56,7 +56,7 @@ def main(mode):
             print('MAP@{}: {}'.format(3, mapk(actual, predicted, 3)))
             print('MAP@{}: {}'.format(1, mapk(actual, predicted, 1)))
 
-        elif mode == 'test':
+        elif args.mode == 'test':
             predicted = []
             for query_file, result in zip(query_files, results):
                 image_files, scores = zip(*result)
@@ -71,6 +71,11 @@ def main(mode):
 
 
 if __name__ == '__main__':
-
-
-    main('eval')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', type=str, choices=['eval', 'test'])
+    parser.add_argument('--queries_path', type=str, default='../data/w5_devel_random')
+    parser.add_argument('--images_path', type=str, default='../data/w5_BBDD_random')
+    parser.add_argument('--corresp_file', type=str, default='../w5_query_devel.pkl')
+    parser.add_argument('--results_path', type=str, default='../results')
+    args = parser.parse_args()
+    main(args)
