@@ -145,17 +145,7 @@ def detect_frame(gray):
 def rotate_and_crop(img, bbox):
     rect = cv2.minAreaRect(bbox)
     box = cv2.boxPoints(rect)
-    #print(box)
-    #cv2.circle(img, (box[2][0], box[2][1]), 300, 1, thickness=1, lineType=8, shift=0)
-    angle = rect[2]
-    if rect[1][0] < rect[1][1]:
-        print(90 -angle)
-    else:
-        print(-angle)
 
-    #print(90 - angle)
-    plt.imshow(img)
-    plt.show()
     # rotate img
     rows, cols = img.shape[0], img.shape[1]
     M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
