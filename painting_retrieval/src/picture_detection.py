@@ -6,6 +6,7 @@ import numpy as np
 import numpy.linalg as la
 import imageio
 import matplotlib.pyplot as plt
+import pickle
 
 
 def FindAngle(a,b,c):
@@ -88,22 +89,13 @@ def detect_frame(gray):
     kernel = np.ones((5, 5), np.uint8)
     img_dilation = cv2.dilate(gray, kernel, iterations=1)
 
-    imS = cv2.resize(img_dilation, (960, 540))  # Resize image
-
     # 2: Median Blur Filter
     img_median_blur = cv2.medianBlur(img_dilation, ksize=7)
-    imS = cv2.resize(img_median_blur, (960, 540))  # Resize image
-
-    # 3: Shrinking and enlarging ??????????????
-
 
     # Canny edge detection with dilation
     canny_gradient = cv2.Canny(img_median_blur, threshold1=0, threshold2=50, apertureSize=3)
-    imS = cv2.resize(canny_gradient, (960, 540))  # Resize image
 
     img_canny_dilation = cv2.dilate(canny_gradient, kernel, iterations=1)
-    imS = cv2.resize(img_canny_dilation, (960, 540))  # Resize image
-
 
     # Contour detection along the edges
     ret, thresh = cv2.threshold(img_canny_dilation, 50, 255, 0)
@@ -153,7 +145,6 @@ def rotate_and_crop(img, bbox):
     img_rot = cv2.warpAffine(img, M, (cols, rows))
 
     # rotate bounding box
-
     pts = np.int0(cv2.transform(np.array([box]), M))[0]
     pts[pts < 0] = 0
 
@@ -170,8 +161,37 @@ def crop_picture(gray):
     return img_crop
 
 
+def create_results(bbox, results):
+    rect = cv2.minAreaRect(bbox)
+    box = cv2.boxPoints(rect)
+    coords = []
+    for i in range(4):
+        coords.append((box[i][0], box[i][1]))
+    angle = rect[2]
+    if rect[1][0] > rect[1][1]:
+        angle = 90 -angle
+    else:
+        angle = -angle
+    if angle >= 90 and angle <= 100:
+        angle = angle - 90
+    elif angle >= 180:
+        angle = angle - 180
+    results.append([angle, coords])
+    return results
+
+
+def save_results(results):
+    if not os.path.exists('../frame_results/'):
+        os.makedirs('../frame_results/')
+
+    results_fn = os.path.join('../frame_results/frames.pkl')
+    print('Saving results to {}'.format(results_fn))
+    with open(results_fn, "wb") as fp:  # Pickling
+        pickle.dump(results, fp)
+
+
 if __name__ == '__main__':
-    frame_bboxes = []
+    results = []
     for filename in glob.glob(os.path.join('../data/w5_devel_random/*.jpg')):
         print(filename)
         img = imageio.imread(filename)
@@ -186,3 +206,7 @@ if __name__ == '__main__':
         angle, img_crop = rotate_and_crop(img, frame_bbox)
         plt.imshow(img_crop)
         plt.show()
+
+        results = create_results(frame_bbox, results)
+    print(results)
+    save_results(results)
