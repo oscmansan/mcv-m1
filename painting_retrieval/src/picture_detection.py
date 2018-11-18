@@ -172,10 +172,12 @@ def create_results(bbox, results):
         angle = 90 -angle
     else:
         angle = -angle
-    if angle >= 90 and angle <= 100:
+    if angle >= 90 and angle <= 120:
         angle = angle - 90
     elif angle >= 180:
         angle = angle - 180
+    elif angle >= 70 and angle < 90:
+        angle = angle + 90
     results.append([angle, coords])
     return results
 
