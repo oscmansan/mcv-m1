@@ -2,25 +2,31 @@ import os
 import multiprocessing.dummy as mp
 
 import numpy as np
-import imageio
+from imutils import resize
 import cv2
 
 from keypoints import detect_keypoints, Mode
 from descriptors import extract_local_descriptors
 from distances import match_descriptors
+from picture_detection import crop_picture
+from text_detection import compute_text_mask
 from timer import Timer
-from detection_picture import crop_picture
 
 
 def _read_and_extract(image_file, keypoint_method, descriptor_method, mode):
-    image = imageio.imread(image_file)
-    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)
+
     if mode == Mode.QUERY:
-        cropped_image = crop_picture(image, image_gray)
+        image = crop_picture(image)
+    image = resize(image, width=512)
+
+    if mode == Mode.IMAGE:
+        mask = compute_text_mask(image)
+        keypoints = detect_keypoints(image, keypoint_method, mode, mask)
     else:
-        cropped_image = image_gray
-    keypoints = detect_keypoints(cropped_image, keypoint_method, mode)
-    descriptors = extract_local_descriptors(cropped_image, keypoints, descriptor_method)
+        keypoints = detect_keypoints(image, keypoint_method, mode)
+
+    descriptors = extract_local_descriptors(image, keypoints, descriptor_method)
     return descriptors
 
 

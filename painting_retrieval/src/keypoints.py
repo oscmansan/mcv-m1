@@ -106,7 +106,7 @@ def harris_laplacian(image):
     return keypoints
 
 
-def sift_keypoints(image, mode):
+def sift_keypoints(image, mask, mode):
     """
     Extract keypoints of an image using Difference of Gaussians method.
 
@@ -127,11 +127,11 @@ def sift_keypoints(image, mode):
         nkeypoints = 0
 
     sift = cv2.xfeatures2d.SIFT_create(nfeatures=nkeypoints)
-    keypoints = sift.detect(image)
+    keypoints = sift.detect(image, mask)
     return keypoints
 
 
-def surf_keypoints(image, mode):
+def surf_keypoints(image, mask, mode):
     """
     Extract keypoints of an image using Box Filter to approximate LoG, and the
     Hessian matrix for both scale and location.
@@ -153,11 +153,11 @@ def surf_keypoints(image, mode):
         hessian_thresh = 400
 
     surf = cv2.xfeatures2d.SURF_create(hessianThreshold=hessian_thresh)
-    keypoints = surf.detect(image)
+    keypoints = surf.detect(image, mask)
     return keypoints
 
 
-def orb_keypoints(image, mode):
+def orb_keypoints(image, mask, mode):
     """
     Extract keypoints of an image using the ORB method.
 
@@ -170,11 +170,11 @@ def orb_keypoints(image, mode):
     """
 
     orb = cv2.ORB_create(WTA_K=4)
-    keypoints = orb.detect(image)
+    keypoints = orb.detect(image, mask)
     return keypoints
 
 
-def harris_corner_detector(image, mode):
+def harris_corner_detector(image, mask, mode):
 
     """
     Extract keypoints from image using Harris Corner Detector.
@@ -192,7 +192,7 @@ def harris_corner_detector(image, mode):
     return [cv2.KeyPoint(corner[0], corner[1], 9) for corner in corners]
 
 
-def harris_corner_subpixel_accuracy(image, mode):
+def harris_corner_subpixel_accuracy(image, mask, mode):
     """
     Extract keypoints from image using Harris Corner Detector with subpixel accuracy.
 
@@ -227,7 +227,7 @@ def harris_corner_subpixel_accuracy(image, mode):
     return [cv2.KeyPoint(corner[0], corner[1], 4) for corner in corners]
 
 
-def detect_keypoints(image, method, mode=None):
+def detect_keypoints(image, method, mode, mask=None):
     func = {
         'dog': difference_of_gaussian,
         'log': laplacian_of_gaussian,
@@ -239,7 +239,4 @@ def detect_keypoints(image, method, mode=None):
         'harris_corner_detector': harris_corner_detector,
         'harris_corner_subpixel': harris_corner_subpixel_accuracy
     }
-    if mode is not None:
-        return func[method](image, mode)
-    else:
-        return func[method](image)
+    return func[method](image, mask, mode)
