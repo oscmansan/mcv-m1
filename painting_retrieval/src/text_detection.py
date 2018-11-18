@@ -23,7 +23,7 @@ def draw_boxes(image, boxes, color=(0, 255, 0)):
     for bbox in boxes:
         x1, y1, x2, y2 = bbox
         #print('({:.2f}, {:.2f}, {:.2f}, {:.2f})'.format(x1, y1, x2, y2))
-        cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=2)
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=2)
     return image
 
 
@@ -195,7 +195,16 @@ def detect(img, method='difference', show=False):
 def correct_boxes(boxes, orig_h, orig_w, h, w):
     w_ratio = orig_w / w
     h_ratio = orig_h / h
-    return [(b[0] * w_ratio, b[1] * h_ratio, b[2] * w_ratio, b[3] * h_ratio) for b in boxes]
+
+    corrected = []
+    for b in boxes:
+        tlx = int(np.floor(b[0] * w_ratio))
+        tly = int(np.floor(b[1] * h_ratio))
+        brx = int(np.ceil(b[2] * w_ratio))
+        bry = int(np.ceil(b[3] * h_ratio))
+        corrected.append((tlx, tly, brx, bry))
+
+    return corrected
 
 
 def filter_text_keypoints(img, keypoints):
@@ -227,7 +236,7 @@ def compute_text_mask(img, method='difference'):
     mask = np.full(img.shape[:2], 255, dtype=np.uint8)
     for box in boxes:
         tlx, tly, brx, bry = box
-        mask[int(tly):int(bry), int(tlx):int(brx)] = 0
+        mask[tly:bry, tlx:brx] = 0
 
     return mask
 
@@ -253,7 +262,7 @@ def bbox_iou(bboxA, bboxB):
 
 
 def save_results(predicted):
-    results = [list(map(int, list(pred[0]))) if pred else [0, 0, 0, 0] for pred in predicted]
+    results = [list(pred[0]) if pred else [0, 0, 0, 0] for pred in predicted]
     path = '../results'
     if not os.path.exists(path):
         os.mkdir(path)
